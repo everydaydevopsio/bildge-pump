@@ -1,12 +1,34 @@
 # cache-cleaner
 
-[![CI](https://github.com/markcallen/cache-cleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/markcallen/cache-cleaner/actions/workflows/ci.yml)
-[![Release](https://github.com/markcallen/cache-cleaner/actions/workflows/release.yml/badge.svg)](https://github.com/markcallen/cache-cleaner/actions/workflows/release.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/markcallen/cache-cleaner?filename=dev-cache%2Fgo.mod)](https://go.dev/)
-[![License](https://img.shields.io/github/license/markcallen/cache-cleaner)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/markcallen/cache-cleaner)](https://github.com/markcallen/cache-cleaner/releases)
+[![CI](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/ci.yml/badge.svg)](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/ci.yml)
+[![Release](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/release.yml/badge.svg)](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/release.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/everydaydevopsio/bildge-pump?filename=dev-cache%2Fgo.mod)](https://go.dev/)
+[![License](https://img.shields.io/github/license/everydaydevopsio/bildge-pump)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/everydaydevopsio/bildge-pump)](https://github.com/everydaydevopsio/bildge-pump/releases)
 
 A collection of Go CLI tools for reclaiming disk space on development machines.
+
+## Repository move
+
+This project has moved from [`markcallen/cache-cleaner`](https://github.com/markcallen/cache-cleaner) to [`everydaydevopsio/bildge-pump`](https://github.com/everydaydevopsio/bildge-pump). The Homebrew tap moved from `markcallen/homebrew-cache-cleaner` to [`everydaydevopsio/homebrew-bildge-pump`](https://github.com/everydaydevopsio/homebrew-bildge-pump).
+
+Update an existing Git checkout with:
+
+```bash
+git remote set-url origin git@github.com:everydaydevopsio/bildge-pump.git
+git fetch origin
+git pull --ff-only
+```
+
+To move an existing Homebrew installation to the new tap:
+
+```bash
+brew untap markcallen/cache-cleaner
+brew tap everydaydevopsio/bildge-pump
+brew reinstall --cask cache-cleaner
+```
+
+For a new Homebrew installation, run `brew tap everydaydevopsio/bildge-pump` followed by `brew install --cask cache-cleaner`.
 
 ## Apps
 
@@ -24,8 +46,8 @@ Cross-platform tool that finds `.git` directories, reports their sizes, and opti
 ### Recommended: Homebrew (macOS)
 
 ```bash
-brew tap markcallen/cache-cleaner
-brew install cache-cleaner
+brew tap everydaydevopsio/bildge-pump
+brew install --cask cache-cleaner
 ```
 
 This installs all 3 apps: `dev-cache`, `git-cleaner`, and `mac-cache-cleaner`.
@@ -36,10 +58,10 @@ If you don't have Homebrew, you can use the install script:
 
 ```bash
 # Install all 3 apps to ~/.local/bin
-curl -sSfL https://raw.githubusercontent.com/markcallen/cache-cleaner/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
+curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bildge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
 
 # Install specific app only
-curl -sSfL https://raw.githubusercontent.com/markcallen/cache-cleaner/HEAD/install.sh | sh -s -- -b $HOME/.local/bin -a mac-cache-cleaner
+curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bildge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin -a mac-cache-cleaner
 ```
 
 **Important**: The install script requires the `-b` flag to specify an installation directory. If you omit the `-b` flag, the script will error out and recommend using Homebrew instead.
@@ -92,11 +114,11 @@ If `brew install cache-cleaner` fails with "No available formula":
 1. Update Homebrew and retry:
    ```bash
    brew update
-   brew tap markcallen/cache-cleaner
-   brew install cache-cleaner
+   brew tap everydaydevopsio/bildge-pump
+   brew install --cask cache-cleaner
    ```
 
-2. Verify the formula exists at: https://github.com/markcallen/homebrew-cache-cleaner/tree/main/Formula
+2. Verify the cask exists at: https://github.com/everydaydevopsio/homebrew-bildge-pump/tree/main/Casks
 
 ### Installation issues
 
@@ -113,7 +135,7 @@ If you encounter issues during installation:
    brew install cache-cleaner --verbose
    ```
 
-3. If problems persist, check the [GitHub Issues](https://github.com/markcallen/cache-cleaner/issues)
+3. If problems persist, check the [GitHub Issues](https://github.com/everydaydevopsio/bildge-pump/issues)
 
 ## Documentation
 
@@ -185,9 +207,9 @@ git push origin v1.0.0
    - Push the formula to `homebrew-cache-cleaner` repository
 
 3. Check the results:
-   - Release: https://github.com/markcallen/cache-cleaner/releases
-   - Formula: https://github.com/markcallen/homebrew-cache-cleaner/tree/main/Formula
-   - Actions log: https://github.com/markcallen/cache-cleaner/actions
+   - Release: https://github.com/everydaydevopsio/bildge-pump/releases
+   - Cask: https://github.com/everydaydevopsio/homebrew-bildge-pump/tree/main/Casks
+   - Actions log: https://github.com/everydaydevopsio/bildge-pump/actions
 
 
 Testing locally
@@ -212,8 +234,8 @@ After creating your first release, verify the installation works correctly:
 
 ```bash
 # Add the tap and install
-brew tap markcallen/cache-cleaner
-brew install cache-cleaner --verbose
+brew tap everydaydevopsio/bildge-pump
+brew install --cask cache-cleaner --verbose
 
 # Verify all binaries are installed
 which dev-cache
@@ -229,8 +251,8 @@ mac-cache-cleaner --version
 brew audit --strict --online cache-cleaner
 
 # Test uninstall (optional)
-brew uninstall cache-cleaner
-brew untap markcallen/cache-cleaner
+brew uninstall --cask cache-cleaner
+brew untap everydaydevopsio/bildge-pump
 ```
 
 ### Release Smoke Test
@@ -251,7 +273,7 @@ For each tagged release:
 
 ## Questions?
 
-Open an issue on GitHub: https://github.com/markcallen/cache-cleaner/issues
+Open an issue on GitHub: https://github.com/everydaydevopsio/bildge-pump/issues
 
 ## License
 
