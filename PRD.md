@@ -161,7 +161,7 @@ The `--list-targets` flag shows all available targets:
 
 ### Future Enhancements
 - TUI interface
-- Homebrew formula
+- Homebrew cask
 - Scheduled runs
 - CI/CD integration examples
 - Windows/Linux support
@@ -394,7 +394,7 @@ make release-snapshot
 # Artifacts will be in ./dist/
 # - Individual binaries: dev-cache-darwin-amd64, etc.
 # - Homebrew tarball: cache-cleaner-VERSION-darwin-{amd64,arm64}.tar.gz
-# - Homebrew formula: dist/homebrew/Formula/cache-cleaner.rb
+# - Homebrew cask: dist/homebrew/Casks/cache-cleaner.rb
 ```
 
 ### Creating a Release
@@ -421,28 +421,28 @@ make release-snapshot
      - Combined tarballs for Homebrew
      - Checksums for verification
      - Auto-generated changelog
-   - Updates Homebrew formula in `markcallen/homebrew-cache-cleaner`
-   - Commits formula changes with proper checksums
+   - Updates the Homebrew cask in `everydaydevopsio/homebrew-bilge-pump`
+   - Commits cask changes with proper checksums
 
 4. **Verify the release:**
-   - Check GitHub Releases: https://github.com/markcallen/cache-cleaner/releases
-   - Check Homebrew formula: https://github.com/markcallen/homebrew-cache-cleaner/tree/main/Formula
+   - Check GitHub Releases: https://github.com/everydaydevopsio/bilge-pump/releases
+   - Check Homebrew cask: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
    - Test installation: `brew upgrade cache-cleaner`
 
 ### Troubleshooting Releases
 
-**Formula not found after release:**
+**Cask not found after release:**
 
-If `brew install cache-cleaner` fails with "No available formula":
+If `brew install cache-cleaner` fails with "No available cask":
 
-1. Check that the formula was pushed to the tap:
-   - Visit: https://github.com/markcallen/homebrew-cache-cleaner/tree/main/Formula
+1. Check that the cask was pushed to the tap:
+   - Visit: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
    - You should see `cache-cleaner.rb`
 
 2. Update Homebrew and retry:
    ```bash
    brew update
-   brew tap markcallen/cache-cleaner
+   brew tap everydaydevopsio/bilge-pump
    brew install cache-cleaner
    ```
 
@@ -451,7 +451,7 @@ If `brew install cache-cleaner` fails with "No available formula":
 If you see authentication errors in the release workflow:
 
 1. Verify the secret exists:
-   - Go to: https://github.com/markcallen/cache-cleaner/settings/secrets/actions
+   - Go to: https://github.com/everydaydevopsio/bilge-pump/settings/secrets/actions
    - Look for `HOMEBREW_TAP_GITHUB_TOKEN`
 
 2. Verify the token has the correct permissions:
@@ -464,10 +464,10 @@ If you see authentication errors in the release workflow:
 
 If users report checksum errors:
 
-1. The formula might be out of sync with the release
+1. The cask might be out of sync with the release
 2. Re-run the release workflow or manually update checksums
 3. Check that GoReleaser successfully updated the tap
-4. Verify the formula at: https://github.com/markcallen/homebrew-cache-cleaner/tree/main/Formula
+4. Verify the cask at: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
 
 ### GoReleaser Configuration
 
@@ -486,8 +486,8 @@ The project uses GoReleaser for automated releases with the following configurat
 - The tarball includes all three binaries
 
 **Homebrew Integration:**
-- Automatically generates formula in `markcallen/homebrew-cache-cleaner`
-- Formula installs all three binaries
+- Automatically generates a cask in `everydaydevopsio/homebrew-bilge-pump`
+- The cask installs all three binaries
 - Includes caveats with quick start instructions
 - Includes version tests for all binaries
 
@@ -500,7 +500,7 @@ The project uses GoReleaser for automated releases with the following configurat
 
 **Primary: Homebrew (Recommended)**
 ```bash
-brew tap markcallen/cache-cleaner
+brew tap everydaydevopsio/bilge-pump
 brew install cache-cleaner
 ```
 
@@ -514,10 +514,10 @@ Benefits:
 **Secondary: Direct Download**
 ```bash
 # Via install script (requires -b flag)
-curl -sSfL https://raw.githubusercontent.com/markcallen/cache-cleaner/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
+curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bilge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
 
 # Or download binaries directly from GitHub Releases
-# https://github.com/markcallen/cache-cleaner/releases
+# https://github.com/everydaydevopsio/bilge-pump/releases
 ```
 
 **install.sh Behavior:**
@@ -533,17 +533,17 @@ To enable automated Homebrew releases:
 
 1. **Create tap repository:**
    - Go to: https://github.com/new
-   - Repository name: `homebrew-cache-cleaner` (must start with `homebrew-`)
+   - Repository name: `homebrew-bilge-pump` (must start with `homebrew-`)
    - Description: "Homebrew tap for cache-cleaner tools"
    - Visibility: Public
    - Initialize with README
-   - After creation, clone and create `Formula/` directory:
+   - After creation, clone and create `Casks/` directory:
      ```bash
-     git clone git@github.com:markcallen/homebrew-cache-cleaner.git
-     cd homebrew-cache-cleaner
-     mkdir Formula
-     git add Formula
-     git commit -m "Add Formula directory"
+     git clone git@github.com:everydaydevopsio/homebrew-bilge-pump.git
+     cd homebrew-bilge-pump
+     mkdir Casks
+     git add Casks
+     git commit -m "Add Casks directory"
      git push origin main
      ```
 
@@ -555,7 +555,7 @@ To enable automated Homebrew releases:
    - Click "Generate token"
    - **IMPORTANT**: Copy the token immediately (you won't see it again)
    - Add as repository secret in the cache-cleaner repository:
-     - Go to: https://github.com/markcallen/cache-cleaner/settings/secrets/actions
+     - Go to: https://github.com/everydaydevopsio/bilge-pump/settings/secrets/actions
      - Click "New repository secret"
      - Name: `HOMEBREW_TAP_GITHUB_TOKEN`
      - Value: Paste the token you copied
@@ -569,7 +569,7 @@ To enable automated Homebrew releases:
 4. **Test after first release:**
    ```bash
    # Add the tap and install
-   brew tap markcallen/cache-cleaner
+   brew tap everydaydevopsio/bilge-pump
    brew install cache-cleaner --verbose
 
    # Verify all binaries are installed
@@ -582,20 +582,20 @@ To enable automated Homebrew releases:
    git-cleaner --version
    mac-cache-cleaner --version
 
-   # Audit the formula
+   # Audit the cask
    brew audit --strict --online cache-cleaner
 
    # Test uninstall (optional)
    brew uninstall cache-cleaner
-   brew untap markcallen/cache-cleaner
+   brew untap everydaydevopsio/bilge-pump
    ```
 
 ### Future: Migrating to Homebrew Core
 
-Once the formula is stable and has users, the project can be submitted to homebrew-core for wider distribution:
+Once the cask is stable and has users, the project can be submitted to homebrew-core for wider distribution:
 
 1. Review the [Homebrew contribution guidelines](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request)
-2. Ensure the formula passes `brew audit --strict --online`
+2. Ensure the cask passes `brew audit --strict --online`
 3. Submit a PR to [Homebrew/homebrew-core](https://github.com/Homebrew/homebrew-core)
 4. After acceptance, users can install with just:
    ```bash

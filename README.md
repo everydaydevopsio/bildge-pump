@@ -1,21 +1,21 @@
 # cache-cleaner
 
-[![CI](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/ci.yml/badge.svg)](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/ci.yml)
-[![Release](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/release.yml/badge.svg)](https://github.com/everydaydevopsio/bildge-pump/actions/workflows/release.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/everydaydevopsio/bildge-pump?filename=dev-cache%2Fgo.mod)](https://go.dev/)
-[![License](https://img.shields.io/github/license/everydaydevopsio/bildge-pump)](LICENSE)
-[![GitHub Release](https://img.shields.io/github/v/release/everydaydevopsio/bildge-pump)](https://github.com/everydaydevopsio/bildge-pump/releases)
+[![CI](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/ci.yml/badge.svg)](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/ci.yml)
+[![Release](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/release.yml/badge.svg)](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/release.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/everydaydevopsio/bilge-pump?filename=dev-cache%2Fgo.mod)](https://go.dev/)
+[![License](https://img.shields.io/github/license/everydaydevopsio/bilge-pump)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/everydaydevopsio/bilge-pump)](https://github.com/everydaydevopsio/bilge-pump/releases)
 
 A collection of Go CLI tools for reclaiming disk space on development machines.
 
 ## Repository move
 
-This project has moved from [`markcallen/cache-cleaner`](https://github.com/markcallen/cache-cleaner) to [`everydaydevopsio/bildge-pump`](https://github.com/everydaydevopsio/bildge-pump). The Homebrew tap moved from `markcallen/homebrew-cache-cleaner` to [`everydaydevopsio/homebrew-bildge-pump`](https://github.com/everydaydevopsio/homebrew-bildge-pump).
+This project has moved from [`markcallen/cache-cleaner`](https://github.com/markcallen/cache-cleaner) to [`everydaydevopsio/bilge-pump`](https://github.com/everydaydevopsio/bilge-pump). The Homebrew tap moved from `markcallen/homebrew-cache-cleaner` to [`everydaydevopsio/homebrew-bilge-pump`](https://github.com/everydaydevopsio/homebrew-bilge-pump).
 
 Update an existing Git checkout with:
 
 ```bash
-git remote set-url origin git@github.com:everydaydevopsio/bildge-pump.git
+git remote set-url origin git@github.com:everydaydevopsio/bilge-pump.git
 git fetch origin
 git pull --ff-only
 ```
@@ -24,11 +24,11 @@ To move an existing Homebrew installation to the new tap:
 
 ```bash
 brew untap markcallen/cache-cleaner
-brew tap everydaydevopsio/bildge-pump
+brew tap everydaydevopsio/bilge-pump
 brew reinstall --cask cache-cleaner
 ```
 
-For a new Homebrew installation, run `brew tap everydaydevopsio/bildge-pump` followed by `brew install --cask cache-cleaner`.
+For a new Homebrew installation, run `brew tap everydaydevopsio/bilge-pump` followed by `brew install --cask cache-cleaner`.
 
 ## Apps
 
@@ -46,7 +46,7 @@ Cross-platform tool that finds `.git` directories, reports their sizes, and opti
 ### Recommended: Homebrew (macOS)
 
 ```bash
-brew tap everydaydevopsio/bildge-pump
+brew tap everydaydevopsio/bilge-pump
 brew install --cask cache-cleaner
 ```
 
@@ -58,10 +58,10 @@ If you don't have Homebrew, you can use the install script:
 
 ```bash
 # Install all 3 apps to ~/.local/bin
-curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bildge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
+curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bilge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
 
 # Install specific app only
-curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bildge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin -a mac-cache-cleaner
+curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bilge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin -a mac-cache-cleaner
 ```
 
 **Important**: The install script requires the `-b` flag to specify an installation directory. If you omit the `-b` flag, the script will error out and recommend using Homebrew instead.
@@ -107,18 +107,18 @@ git-cleaner --scan ~/src --clean     # optimize with git gc
 
 ## Troubleshooting
 
-### Formula not found
+### Cask not found
 
-If `brew install cache-cleaner` fails with "No available formula":
+If `brew install cache-cleaner` fails with "No available cask":
 
 1. Update Homebrew and retry:
    ```bash
    brew update
-   brew tap everydaydevopsio/bildge-pump
+   brew tap everydaydevopsio/bilge-pump
    brew install --cask cache-cleaner
    ```
 
-2. Verify the cask exists at: https://github.com/everydaydevopsio/homebrew-bildge-pump/tree/main/Casks
+2. Verify the cask exists at: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
 
 ### Installation issues
 
@@ -135,7 +135,7 @@ If you encounter issues during installation:
    brew install cache-cleaner --verbose
    ```
 
-3. If problems persist, check the [GitHub Issues](https://github.com/everydaydevopsio/bildge-pump/issues)
+3. If problems persist, check the [GitHub Issues](https://github.com/everydaydevopsio/bilge-pump/issues)
 
 ## Documentation
 
@@ -204,12 +204,12 @@ git push origin v1.0.0
    - Build all 3 binaries for darwin/amd64 and darwin/arm64
    - Create a GitHub release with binaries attached
    - Generate a Homebrew cask
-   - Push the formula to `homebrew-cache-cleaner` repository
+   - Push the cask to `homebrew-bilge-pump` repository
 
 3. Check the results:
-   - Release: https://github.com/everydaydevopsio/bildge-pump/releases
-   - Cask: https://github.com/everydaydevopsio/homebrew-bildge-pump/tree/main/Casks
-   - Actions log: https://github.com/everydaydevopsio/bildge-pump/actions
+   - Release: https://github.com/everydaydevopsio/bilge-pump/releases
+   - Cask: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
+   - Actions log: https://github.com/everydaydevopsio/bilge-pump/actions
 
 
 Testing locally
@@ -234,7 +234,7 @@ After creating your first release, verify the installation works correctly:
 
 ```bash
 # Add the tap and install
-brew tap everydaydevopsio/bildge-pump
+brew tap everydaydevopsio/bilge-pump
 brew install --cask cache-cleaner --verbose
 
 # Verify all binaries are installed
@@ -247,12 +247,12 @@ dev-cache --version
 git-cleaner --version
 mac-cache-cleaner --version
 
-# Audit the formula
+# Audit the cask
 brew audit --strict --online cache-cleaner
 
 # Test uninstall (optional)
 brew uninstall --cask cache-cleaner
-brew untap everydaydevopsio/bildge-pump
+brew untap everydaydevopsio/bilge-pump
 ```
 
 ### Release Smoke Test
@@ -273,7 +273,7 @@ For each tagged release:
 
 ## Questions?
 
-Open an issue on GitHub: https://github.com/everydaydevopsio/bildge-pump/issues
+Open an issue on GitHub: https://github.com/everydaydevopsio/bilge-pump/issues
 
 ## License
 

@@ -116,11 +116,11 @@ homebrew_casks:
       - mac-cache-cleaner
 
     repository:
-      owner: markcallen
-      name: homebrew-cache-cleaner
+      owner: everydaydevopsio
+      name: homebrew-bilge-pump
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Casks
-    homepage: https://github.com/markcallen/cache-cleaner
+    homepage: https://github.com/everydaydevopsio/bilge-pump
     description: "Collection of Go CLI tools for reclaiming disk space on development machines"
 
     # Caveats to display after installation
@@ -135,7 +135,7 @@ homebrew_casks:
         git-cleaner --scan ~/src
         mac-cache-cleaner --init
 
-      Documentation: https://github.com/markcallen/cache-cleaner
+      Documentation: https://github.com/everydaydevopsio/bilge-pump
 
     # Remove quarantine attribute on macOS since binaries are not signed/notarized
     hooks:
@@ -149,8 +149,8 @@ homebrew_casks:
 
 release:
   github:
-    owner: markcallen
-    name: cache-cleaner
+    owner: everydaydevopsio
+    name: bilge-pump
   draft: false
   prerelease: auto
   mode: replace
@@ -163,7 +163,7 @@ release:
 
     **Recommended: Homebrew**
     ```bash
-    brew tap markcallen/cache-cleaner
+    brew tap everydaydevopsio/bilge-pump
     brew install cache-cleaner
     ```
 
@@ -171,6 +171,6 @@ release:
     Download the binaries for your architecture below and place them in your PATH.
 
   footer: |
-    **Full Changelog**: https://github.com/markcallen/cache-cleaner/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/everydaydevopsio/bilge-pump/compare/{{ .PreviousTag }}...{{ .Tag }}
 
   name_template: "{{.ProjectName}}-v{{.Version}}"

@@ -89,6 +89,6 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: markcallen/cache-cleaner
+          slug: everydaydevopsio/bilge-pump
           files: ${{ inputs.app_name }}/coverage.out
           flags: ${{ inputs.app_name }}
