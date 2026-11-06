@@ -2,8 +2,9 @@
 
 set -eu
 
-REPO_OWNER="markcallen"
-REPO_NAME="cache-cleaner"
+REPO_OWNER="everydaydevopsio"
+REPO_NAME="bilge-pump"
+CASK_NAME="cache-cleaner"
 
 # Available apps
 APPS="dev-cache git-cleaner mac-cache-cleaner"
@@ -14,7 +15,7 @@ Install cache-cleaner tools
 
 RECOMMENDED: Use Homebrew instead of this script:
   brew tap ${REPO_OWNER}/${REPO_NAME}
-  brew install ${REPO_NAME}
+  brew install --cask ${CASK_NAME}
 
 Usage:
   install.sh -b <bin_dir> [-a <app>] [<version>]
@@ -89,7 +90,7 @@ Error: Homebrew installation is recommended over direct installation.
 Please install using Homebrew instead:
 
     brew tap ${REPO_OWNER}/${REPO_NAME}
-    brew install ${REPO_NAME}
+    brew install --cask ${CASK_NAME}
 
 If you prefer direct installation, specify an installation directory:
 
@@ -113,7 +114,7 @@ Make sure the directory is in your PATH:
 
 Alternatively, if you have Homebrew, use:
     brew tap ${REPO_OWNER}/${REPO_NAME}
-    brew install ${REPO_NAME}
+    brew install --cask ${CASK_NAME}
 EOF
   exit 1
 fi
