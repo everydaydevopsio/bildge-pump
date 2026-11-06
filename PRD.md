@@ -427,7 +427,11 @@ make release-snapshot
 4. **Verify the release:**
    - Check GitHub Releases: https://github.com/everydaydevopsio/bilge-pump/releases
    - Check Homebrew cask: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
-   - Test installation: `brew upgrade cache-cleaner`
+   - Trust and test installation:
+     ```bash
+     brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
+     brew upgrade --cask cache-cleaner
+     ```
 
 ### Troubleshooting Releases
 
@@ -443,7 +447,8 @@ If `brew install cache-cleaner` fails with "No available cask":
    ```bash
    brew update
    brew tap everydaydevopsio/bilge-pump
-   brew install cache-cleaner
+   brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
+   brew install --cask cache-cleaner
    ```
 
 **Token errors in GitHub Actions:**
@@ -501,8 +506,10 @@ The project uses GoReleaser for automated releases with the following configurat
 **Primary: Homebrew (Recommended)**
 ```bash
 brew tap everydaydevopsio/bilge-pump
-brew install cache-cleaner
+brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
+brew install --cask cache-cleaner
 ```
+Run the trust command before installing or upgrading this third-party cask.
 
 Benefits:
 - Automatic PATH configuration
@@ -570,7 +577,8 @@ To enable automated Homebrew releases:
    ```bash
    # Add the tap and install
    brew tap everydaydevopsio/bilge-pump
-   brew install cache-cleaner --verbose
+   brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
+   brew install --cask cache-cleaner --verbose
 
    # Verify all binaries are installed
    which dev-cache

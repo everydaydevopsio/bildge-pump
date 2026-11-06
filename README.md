@@ -25,10 +25,17 @@ To move an existing Homebrew installation to the new tap:
 ```bash
 brew untap markcallen/cache-cleaner
 brew tap everydaydevopsio/bilge-pump
+brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
 brew reinstall --cask cache-cleaner
 ```
 
-For a new Homebrew installation, run `brew tap everydaydevopsio/bilge-pump` followed by `brew install --cask cache-cleaner`.
+For a new Homebrew installation, tap the repository, trust its cask, and install:
+
+```bash
+brew tap everydaydevopsio/bilge-pump
+brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
+brew install --cask cache-cleaner
+```
 
 ## Apps
 
@@ -47,8 +54,11 @@ Cross-platform tool that finds `.git` directories, reports their sizes, and opti
 
 ```bash
 brew tap everydaydevopsio/bilge-pump
+brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
 brew install --cask cache-cleaner
 ```
+
+Run the trust command before installing or upgrading this third-party cask.
 
 This installs all 3 apps: `dev-cache`, `git-cleaner`, and `mac-cache-cleaner`.
 
@@ -115,6 +125,7 @@ If `brew install cache-cleaner` fails with "No available cask":
    ```bash
    brew update
    brew tap everydaydevopsio/bilge-pump
+   brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
    brew install --cask cache-cleaner
    ```
 
@@ -235,6 +246,7 @@ After creating your first release, verify the installation works correctly:
 ```bash
 # Add the tap and install
 brew tap everydaydevopsio/bilge-pump
+brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
 brew install --cask cache-cleaner --verbose
 
 # Verify all binaries are installed
