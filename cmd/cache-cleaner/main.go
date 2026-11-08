@@ -202,7 +202,7 @@ func run(args []string) int {
 		usage()
 		return 0
 	}
-	path, scanOverride, init, force, jsonMode := configPath(), "", false, false, false
+	path, scanOverride, init, force, jsonMode, yes, forceClean := configPath(), "", false, false, false, false, false
 	commandArgs := make([]string, 0, len(args))
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -234,6 +234,10 @@ func run(args []string) int {
 			force = true
 		case "--json":
 			jsonMode = true
+		case "--yes":
+			yes = true
+		case "--clean":
+			forceClean = true
 		default:
 			commandArgs = append(commandArgs, arg)
 		}
@@ -265,23 +269,19 @@ func run(args []string) int {
 			}
 		}
 	}
-	clean := command == "clean" || containsArg(extra, "--clean")
+	clean := command == "clean" || forceClean || containsArg(extra, "--clean")
+	extra = withoutArgs(extra, "--all", "--clean")
+	taskArgs, err := planTaskArgs(selected, extra, clean, cfg.ScanPath, yes)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "argument error:", err)
+		return 1
+	}
 	results := make([]TaskResult, 0, len(selected))
 	for _, task := range selected {
-		childArgs := append([]string{}, extra...)
-		switch task {
-		case "dev-cache":
-			childArgs = append(childArgs, "--scan", cfg.ScanPath)
-		case "git-cleaner":
-			childArgs = append(childArgs, "--scan", cfg.ScanPath)
-		}
-		if clean {
-			childArgs = append(childArgs, "--clean")
-		}
 		if task == "" {
 			continue
 		}
-		results = append(results, runTask(task, childArgs, jsonMode))
+		results = append(results, runTask(task, taskArgs[task], jsonMode))
 	}
 	if jsonMode {
 		report := Report{Version: version, OS: runtime.GOOS, Arch: runtime.GOARCH, When: time.Now().UTC(), DryRun: !clean, Tasks: results}
@@ -297,6 +297,72 @@ func run(args []string) int {
 		}
 	}
 	return exitCode(results)
+}
+
+func withoutArgs(args []string, remove ...string) []string {
+	filtered := make([]string, 0, len(args))
+	for _, arg := range args {
+		if !containsArg(remove, arg) {
+			filtered = append(filtered, arg)
+		}
+	}
+	return filtered
+}
+
+func planTaskArgs(tasks, extra []string, clean bool, scanPath string, yes bool) (map[string][]string, error) {
+	allowed := map[string]map[string]bool{
+		"dev-cache":             {"--depth": true, "--languages": true, "--unsafe-clean": false},
+		"git-cleaner":           {},
+		"mac-cache-cleaner":     {"--targets": true, "--docker-prune": false, "--details": false, "--check-tools": false, "--list-targets": false},
+		"linux-cache-cleaner":   {"--targets": true},
+		"windows-cache-cleaner": {"--targets": true},
+	}
+	for i := 0; i < len(extra); i++ {
+		key, _, hasValue := strings.Cut(extra[i], "=")
+		if !strings.HasPrefix(key, "--") {
+			return nil, fmt.Errorf("unexpected positional argument %q", extra[i])
+		}
+		if key == "--help" || key == "--version" {
+			continue
+		}
+		aritySet := len(tasks) > 0
+		needsValue := false
+		for _, task := range tasks {
+			flags, taskKnown := allowed[task]
+			arity, found := flags[key]
+			if !taskKnown || !found {
+				aritySet = false
+				continue
+			}
+			if arity {
+				needsValue = true
+			}
+		}
+		if !aritySet {
+			return nil, fmt.Errorf("flag %s is not supported by every selected task", key)
+		}
+		if needsValue && !hasValue {
+			if i+1 >= len(extra) || strings.HasPrefix(extra[i+1], "--") {
+				return nil, fmt.Errorf("%s requires a value", key)
+			}
+			i++
+		}
+	}
+	planned := make(map[string][]string, len(tasks))
+	for _, task := range tasks {
+		child := append([]string(nil), extra...)
+		if task == "dev-cache" || task == "git-cleaner" {
+			child = append(child, "--scan", scanPath)
+		}
+		if clean {
+			child = append(child, "--clean")
+		}
+		if yes && task == "dev-cache" {
+			child = append(child, "--yes")
+		}
+		planned[task] = child
+	}
+	return planned, nil
 }
 
 func containsArg(args []string, target string) bool {
@@ -364,7 +430,7 @@ func usage() {
 	fmt.Println("cache-cleaner clean <task> [flags]")
 	fmt.Println("cache-cleaner <task> [flags]")
 	fmt.Println("\nTasks: dev-cache, git-cleaner, mac-cache-cleaner, linux-cache-cleaner, windows-cache-cleaner")
-	fmt.Println("Flags: --config PATH --init [--force] --json")
+	fmt.Println("Flags: --config PATH --init [--force] --json --yes")
 	fmt.Println("Examples:")
 	fmt.Println("  cache-cleaner scan                 # Dry-run all configured cleanup tasks")
 	fmt.Println("  cache-cleaner clean --all          # Clean all configured tasks")

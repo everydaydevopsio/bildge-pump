@@ -114,9 +114,12 @@ builds:
       - -X main.date={{.Date}}
 
 archives:
-  # Combined tarball for Homebrew
+  # Combined archive for Homebrew and platform installers
   - id: cache-cleaner
     name_template: "cache-cleaner-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
     files:
       - none*  # Only include binaries, no extra files
 

@@ -24,6 +24,9 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - `--config` overrides the default path.
 - Existing tool configs remain readable at their XDG-aware per-tool paths, and `git-cleaner` gains config support for its default scan path.
 - A first run works with built-in sensible defaults; `--init` writes a customizable config.
+- Legacy component executables use their built-in starter config when their default XDG/platform config is absent; an explicitly supplied missing `--config` path remains an error.
+- The unified CLI consumes orchestration flags itself, routes `--yes` only to project cache cleanup, and rejects task-specific arguments that are invalid for any selected task before starting a clean operation.
+- Windows release archives are ZIP files matching `install.ps1`; macOS and Linux retain tar.gz archives.
 
 ### CLI and behavior
 - `cache-cleaner scan` reports findings across tasks without changing files.

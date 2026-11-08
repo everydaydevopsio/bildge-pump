@@ -66,6 +66,7 @@ test:
 	@$(MAKE) -C dev-cache test
 	@$(MAKE) -C git-cleaner test
 	@$(MAKE) -C mac-cache-cleaner test
+	@go test ./cmd/...
 
 fmt:
 	@echo "Formatting all applications..."

@@ -40,7 +40,7 @@ brew install --cask cache-cleaner
 ## Apps
 
 ### cache-cleaner
-Unified entry point for scanning or cleaning project caches, Git repositories, and the current OS's developer caches. Run `cache-cleaner scan` for a dry run, `cache-cleaner clean --all` to run the configured cleanup tasks, or select one task with `cache-cleaner clean dev-cache` / `cache-cleaner clean git-cleaner`.
+Unified entry point for scanning or cleaning project caches, Git repositories, and the current OS's developer caches. Run `cache-cleaner scan` for a dry run, `cache-cleaner clean --all` to run the configured cleanup tasks, or select one task with `cache-cleaner clean dev-cache` / `cache-cleaner clean git-cleaner`. Add `--yes` to skip the project-cache confirmation prompt; the unified command sends it only to `dev-cache`.
 
 The release installs the unified command alongside its task executables in one directory. The unified command locates those executables beside itself, so users run one command without adding each tool to `PATH`.
 
@@ -123,6 +123,7 @@ Add this to your shell profile (`~/.zshrc` or `~/.bashrc`) to make it permanent.
 cache-cleaner --init                # create a starter config
 cache-cleaner scan                  # dry-run all configured tasks
 cache-cleaner clean --all           # run all configured cleanup tasks
+cache-cleaner clean --all --yes     # skip project-cache confirmation
 cache-cleaner clean dev-cache       # run one cleanup task
 cache-cleaner --json scan           # shared JSON envelope
 ```

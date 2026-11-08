@@ -787,6 +787,17 @@ func TestExpandGlobsWithWildcards(t *testing.T) {
 	}
 }
 
+func TestLoadConfigUsesDefaultsWhenDefaultConfigIsMissing(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg, err := loadConfig(defaultConfigPath())
+	if err != nil {
+		t.Fatalf("loadConfig(default path) failed on a fresh install: %v", err)
+	}
+	if cfg == nil || len(cfg.Targets) == 0 {
+		t.Fatal("default config has no targets")
+	}
+}
+
 func TestConfigIO_WriteAndLoad(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfgPath := filepath.Join(tmpDir, "config.yaml")

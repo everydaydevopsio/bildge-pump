@@ -463,21 +463,8 @@ func expandGlobs(pattern string) ([]string, error) {
 
 // ----- Config IO -----
 
-func writeStarterConfig(path string, force bool) error {
-	// Check if file exists
-	if _, err := os.Stat(path); err == nil {
-		if !force {
-			return fmt.Errorf("config file already exists at %s. Use --force to overwrite", path)
-		}
-		// Backup existing file with timestamp
-		backupPath := fmt.Sprintf("%s.%s", path, time.Now().Format("20060102-150405"))
-		if err := os.Rename(path, backupPath); err != nil {
-			return fmt.Errorf("failed to backup existing config: %w", err)
-		}
-		fmt.Printf("Existing config backed up to: %s\n", backupPath)
-	}
-
-	starter := Config{
+func defaultConfig() Config {
+	return Config{
 		Version: 1,
 		Options: Options{DockerPruneByDefault: false},
 		Targets: []Target{
@@ -521,6 +508,23 @@ func writeStarterConfig(path string, force bool) error {
 			{Name: "puppeteer", Enabled: true, Notes: "Puppeteer cache (informational; cleanup must not install packages)", Paths: []string{"~/.cache/puppeteer"}, Cmds: [][]string{}, Tools: []Tool{{Name: "node", InstallCmd: "brew install node"}}},
 		},
 	}
+}
+
+func writeStarterConfig(path string, force bool) error {
+	// Check if file exists
+	if _, err := os.Stat(path); err == nil {
+		if !force {
+			return fmt.Errorf("config file already exists at %s. Use --force to overwrite", path)
+		}
+		// Backup existing file with timestamp
+		backupPath := fmt.Sprintf("%s.%s", path, time.Now().Format("20060102-150405"))
+		if err := os.Rename(path, backupPath); err != nil {
+			return fmt.Errorf("failed to backup existing config: %w", err)
+		}
+		fmt.Printf("Existing config backed up to: %s\n", backupPath)
+	}
+
+	starter := defaultConfig()
 	if err := ensureDir(path); err != nil {
 		return err
 	}
@@ -533,11 +537,14 @@ func writeStarterConfig(path string, force bool) error {
 
 func loadConfig(path string) (*Config, error) {
 	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
 	var cfg Config
-	if err := yaml.Unmarshal(b, &cfg); err != nil {
+	if err != nil {
+		if os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
+			cfg = defaultConfig()
+		} else {
+			return nil, err
+		}
+	} else if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return nil, err
 	}
 	// sdkmanager --update downloads data rather than reclaiming space.

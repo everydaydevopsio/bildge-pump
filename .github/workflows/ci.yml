@@ -46,6 +46,8 @@ jobs:
       - name: Format check
         run: |
           test -z "$(gofmt -l cmd)"
+      - name: Test unified CLI and platform cleaners
+        run: go test ./cmd/...
       - name: Cross-build unified and platform commands
         run: |
           set -eu

@@ -34,9 +34,11 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - [x] Standardize the unified JSON report envelope and aggregate exit codes.
 - [x] Update build, release, installation, CI, and user documentation for three OSes.
 - [x] Validate formatting and host/cross-platform builds for supported platform command packages; inspect config paths and dispatch. Full test suites were not run in this implementation session.
+- [x] Fix review findings: built-in defaults for missing legacy default configs, Windows ZIP release archive, and safe unified flag routing/validation.
 
 ## Test Strategy
 - Unit coverage for config location/precedence, task selection, platform dispatch, report schema, and exit-code mapping.
+- Regression coverage for fresh default-config startup, task flag routing, and rejecting invalid multi-task cleanup arguments before execution.
 - CLI integration checks for dry-run, clean --all, named task execution, and missing/unsupported platform tools.
 - Cross-compilation/build checks for darwin, linux, and windows amd64/arm64.
 - Safety checks that dry-run never executes clean commands and that sensitive targets remain explicitly gated.
@@ -47,5 +49,5 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - Validation after rollback: build and verify the three existing standalone applications and restore previous release configuration.
 
 ## Outcome
-- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. The command is a single user entry point, with task executables bundled beside it.
-- Evidence links/commands: `gofmt -w ...`; `go build ./cmd/cache-cleaner`; Linux amd64 and Windows amd64 platform-cleaner builds; Darwin arm64 unified-command build; standalone app builds; `git diff --check`.
+- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners now use in-memory defaults when their default config is missing, Windows archives match the PowerShell installer, and unified task arguments are validated before cleanup begins.
+- Evidence links/commands: `make test`; cross-build matrix for unified and platform commands; `git diff --check`.
