@@ -33,7 +33,7 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - [x] Add unified XDG-aware configuration, git-cleaner config support, and flag precedence.
 - [x] Standardize the unified JSON report envelope and aggregate exit codes.
 - [x] Update build, release, installation, CI, and user documentation for three OSes.
-- [x] Validate formatting and host/cross-platform builds for supported platform command packages; inspect config paths and dispatch. Full test suites were not run in this implementation session.
+- [x] Validate formatting, full test suites, and the host/cross-platform build matrix for supported command packages; inspect config paths and dispatch.
 - [x] Fix review findings: built-in defaults for missing legacy default configs, Windows ZIP release archive, and safe unified flag routing/validation.
 
 ## Test Strategy
