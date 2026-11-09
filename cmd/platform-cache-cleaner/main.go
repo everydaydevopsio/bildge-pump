@@ -171,26 +171,11 @@ func inspect(path string) Finding {
 	return f
 }
 
-func targetCommand(executable string, args []string) *exec.Cmd {
+func targetCommand(executable string, args []string) (*exec.Cmd, error) {
 	if runtime.GOOS == "windows" && strings.EqualFold(filepath.Ext(executable), ".cmd") {
 		return windowsBatchCommand(executable, args)
 	}
-	return exec.Command(executable, args...)
-}
-
-func windowsBatchCommand(executable string, args []string) *exec.Cmd {
-	encodedArgs, _ := json.Marshal(args)
-	const script = `$childArgs = @(ConvertFrom-Json -InputObject $env:BILGE_PUMP_ARGS); & $env:BILGE_PUMP_EXECUTABLE @childArgs; exit $LASTEXITCODE`
-	cmd := exec.Command("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
-	for _, entry := range os.Environ() {
-		upper := strings.ToUpper(entry)
-		if strings.HasPrefix(upper, "BILGE_PUMP_EXECUTABLE=") || strings.HasPrefix(upper, "BILGE_PUMP_ARGS=") {
-			continue
-		}
-		cmd.Env = append(cmd.Env, entry)
-	}
-	cmd.Env = append(cmd.Env, "BILGE_PUMP_EXECUTABLE="+executable, "BILGE_PUMP_ARGS="+string(encodedArgs))
-	return cmd
+	return exec.Command(executable, args...), nil
 }
 
 func main() { os.Exit(run()) }
@@ -288,7 +273,11 @@ func run() int {
 					rep.Errors = append(rep.Errors, fmt.Sprintf("%s: %s is not installed", t.Name, argv[0]))
 					continue
 				}
-				cmd := targetCommand(exe, argv[1:])
+				cmd, e := targetCommand(exe, argv[1:])
+				if e != nil {
+					rep.Errors = append(rep.Errors, fmt.Sprintf("%s: %v", t.Name, e))
+					continue
+				}
 				cmd.Stdout = progress
 				cmd.Stderr = progress
 				_, _ = fmt.Fprintf(progress, "[%s] %s\n", t.Name, strings.Join(argv, " "))

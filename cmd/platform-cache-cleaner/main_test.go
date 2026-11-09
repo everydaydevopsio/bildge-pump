@@ -40,13 +40,19 @@ func TestWindowsBatchLauncherPreservesExecutableAndArgumentBoundaries(t *testing
 		t.Fatal(err)
 	}
 	args := []string{"argument with spaces", "literal & echo INJECTED", "pipe|caret^", "100%TEMP%"}
-	cmd := windowsBatchCommand(executable, args)
+	cmd, err := windowsBatchCommand(executable, args)
+	if err != nil {
+		t.Fatal(err)
+	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("batch command failed: %v: %s", err, output)
 	}
 	text := strings.TrimSpace(string(output))
-	if strings.Count(text, "\n") != 0 || !strings.Contains(text, `"argument with spaces"`) || !strings.Contains(text, `"literal & echo INJECTED"`) || !strings.Contains(text, `"100%TEMP%"`) {
+	if strings.Count(text, "\n") != 0 || !strings.Contains(text, `"argument with spaces"`) || !strings.Contains(text, `"literal & echo INJECTED"`) || !strings.Contains(text, `"pipe|caret^"`) || !strings.Contains(text, `"100%TEMP%"`) {
 		t.Fatalf("arguments were changed or split: %q", text)
+	}
+	if _, err := windowsBatchCommand(executable, []string{`literal " quote`}); err == nil {
+		t.Fatal("expected unrepresentable literal quote to be rejected")
 	}
 }
