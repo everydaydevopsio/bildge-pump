@@ -92,11 +92,14 @@ func defaultTargets() []Target {
 	}
 	return targets
 }
-func load(path string) (Config, error) {
+func load(path string, allowMissing bool) (Config, error) {
 	cfg := Config{Version: 1, Targets: defaultTargets()}
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return cfg, nil
+		if allowMissing {
+			return cfg, nil
+		}
+		return cfg, fmt.Errorf("config file %s does not exist", path)
 	}
 	if err != nil {
 		return cfg, err
@@ -156,6 +159,12 @@ func run() int {
 	targetsArg := flag.String("targets", "all", "Comma-separated target names or all")
 	config := flag.String("config", configPath(), "Config YAML path")
 	flag.Parse()
+	configExplicit := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configExplicit = true
+		}
+	})
 	if *init {
 		if _, err := os.Stat(*config); err == nil {
 			if !*force {
@@ -189,7 +198,7 @@ func run() int {
 		fmt.Println("Starter config written to:", *config)
 		return 0
 	}
-	cfg, err := load(*config)
+	cfg, err := load(*config, !configExplicit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "config error:", err)
 		return 1

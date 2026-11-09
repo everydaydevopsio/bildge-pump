@@ -35,10 +35,12 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - [x] Update build, release, installation, CI, and user documentation for three OSes.
 - [x] Validate formatting, full test suites, and the host/cross-platform build matrix for supported command packages; inspect config paths and dispatch.
 - [x] Fix review findings: built-in defaults for missing legacy default configs, Windows ZIP release archive, and safe unified flag routing/validation.
+- [x] Fix follow-up review findings: honor explicit boolean values, fail on missing explicit config paths, and locate nested project repositories from cache directories.
 
 ## Test Strategy
 - Unit coverage for config location/precedence, task selection, platform dispatch, report schema, and exit-code mapping.
 - Regression coverage for fresh default-config startup, task flag routing, and rejecting invalid multi-task cleanup arguments before execution.
+- Regression coverage for explicit false values, missing explicit configs, and nested Git repositories in cache cleanup safety checks.
 - CLI integration checks for dry-run, clean --all, named task execution, and missing/unsupported platform tools.
 - Cross-compilation/build checks for darwin, linux, and windows amd64/arm64.
 - Safety checks that dry-run never executes clean commands and that sensitive targets remain explicitly gated.
@@ -49,5 +51,5 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - Validation after rollback: build and verify the three existing standalone applications and restore previous release configuration.
 
 ## Outcome
-- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners now use in-memory defaults when their default config is missing, Windows archives match the PowerShell installer, and unified task arguments are validated before cleanup begins.
-- Evidence links/commands: `make test`; cross-build matrix for unified and platform commands; `git diff --check`.
+- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners use in-memory defaults when their default config is missing; explicit missing configs fail; boolean values are respected; nested Git repositories are found from cache paths; Windows archives match the PowerShell installer; and task arguments are validated before cleanup begins.
+- Evidence links/commands: `make test`; cross-build matrix for unified and platform commands; `goreleaser check --config .goreleaser.yaml`; `git diff --check`.

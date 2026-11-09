@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -69,11 +70,14 @@ func defaultScanPath() string {
 	return "."
 }
 
-func loadConfig(path string) (Config, error) {
+func loadConfigWithDefaults(path string, allowMissing bool) (Config, error) {
 	cfg := Config{Version: 1, ScanPath: defaultScanPath(), Tasks: []string{"dev-cache", "git-cleaner", platformCleaner()}}
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return cfg, nil
+		if allowMissing {
+			return cfg, nil
+		}
+		return cfg, fmt.Errorf("config file %s does not exist", path)
 	}
 	if err != nil {
 		return cfg, err
@@ -202,7 +206,7 @@ func run(args []string) int {
 		usage()
 		return 0
 	}
-	path, scanOverride, init, force, jsonMode, yes, forceClean := configPath(), "", false, false, false, false, false
+	path, scanOverride, init, force, jsonMode, yes, forceClean, forceCleanSet, configExplicit := configPath(), "", false, false, false, false, false, false, false
 	commandArgs := make([]string, 0, len(args))
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -218,6 +222,7 @@ func run(args []string) int {
 				value = args[i]
 			}
 			path = value
+			configExplicit = true
 		case "--scan":
 			if !hasValue {
 				i++
@@ -235,9 +240,19 @@ func run(args []string) int {
 		case "--json":
 			jsonMode = true
 		case "--yes":
-			yes = true
+			parsed, err := parseBooleanFlag(value, hasValue)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "invalid --yes value:", err)
+				return 1
+			}
+			yes = parsed
 		case "--clean":
-			forceClean = true
+			parsed, err := parseBooleanFlag(value, hasValue)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "invalid --clean value:", err)
+				return 1
+			}
+			forceClean, forceCleanSet = parsed, true
 		default:
 			commandArgs = append(commandArgs, arg)
 		}
@@ -251,7 +266,7 @@ func run(args []string) int {
 		fmt.Println("Starter config written to:", path)
 		return 0
 	}
-	cfg, err := loadConfig(path)
+	cfg, err := loadConfigWithDefaults(path, !configExplicit)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "config error:", err)
 		return 1
@@ -269,7 +284,7 @@ func run(args []string) int {
 			}
 		}
 	}
-	clean := command == "clean" || forceClean || containsArg(extra, "--clean")
+	clean := cleanupRequested(command, forceCleanSet, forceClean, extra)
 	extra = withoutArgs(extra, "--all", "--clean")
 	taskArgs, err := planTaskArgs(selected, extra, clean, cfg.ScanPath, yes)
 	if err != nil {
@@ -297,6 +312,20 @@ func run(args []string) int {
 		}
 	}
 	return exitCode(results)
+}
+
+func parseBooleanFlag(value string, hasValue bool) (bool, error) {
+	if !hasValue {
+		return true, nil
+	}
+	return strconv.ParseBool(value)
+}
+
+func cleanupRequested(command string, flagSet, flagValue bool, extra []string) bool {
+	if flagSet {
+		return flagValue
+	}
+	return command == "clean" || containsArg(extra, "--clean")
 }
 
 func withoutArgs(args []string, remove ...string) []string {

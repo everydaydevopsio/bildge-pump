@@ -3,10 +3,30 @@ package main
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestSafeCachePathFindsNestedRepositoryFromCachePath(t *testing.T) {
+	team := filepath.Join(t.TempDir(), "team")
+	repo := filepath.Join(team, "repo")
+	cache := filepath.Join(repo, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	allowed, reason := safeCachePath(Finding{Path: cache, ProjectRoot: team, Pattern: "node_modules"})
+	if !allowed {
+		t.Fatalf("safeCachePath rejected nested project cache: %s", reason)
+	}
+}
 
 func TestCheckVersionFlag(t *testing.T) {
 	tests := []struct {

@@ -493,17 +493,21 @@ func main() {
 }
 
 func safeCachePath(f Finding) (bool, string) {
-	root := f.ProjectRoot
-	if root == "" {
+	start := filepath.Dir(f.Path)
+	if start == "." || start == "" {
 		return false, "project root is unknown; pass --unsafe-clean to override"
 	}
-	cmd := exec.Command("git", "-C", root, "rev-parse", "--show-toplevel")
+	cmd := exec.Command("git", "-C", start, "rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
 	if err != nil {
 		return false, "not inside a Git repository; pass --unsafe-clean to override"
 	}
-	root = strings.TrimSpace(string(out))
-	rel, err := filepath.Rel(root, f.Path)
+	root := strings.TrimSpace(string(out))
+	cachePath := f.Path
+	if resolved, err := filepath.EvalSymlinks(cachePath); err == nil {
+		cachePath = resolved
+	}
+	rel, err := filepath.Rel(root, cachePath)
 	if err != nil {
 		return false, "cache path is outside its Git repository"
 	}
