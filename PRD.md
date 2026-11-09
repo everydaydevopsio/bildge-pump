@@ -25,6 +25,7 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Existing tool configs remain readable at their XDG-aware per-tool paths, and `git-cleaner` gains config support for its default scan path.
 - A first run works with built-in sensible defaults; `--init` writes a customizable config.
 - Legacy component executables use their built-in starter config when their default XDG/platform config is absent; an explicitly supplied missing `--config` path remains an error.
+- Explicit missing component configs remain errors even when the supplied path happens to equal that tool's default config path.
 - The unified CLI consumes orchestration flags itself, routes `--yes` only to project cache cleanup, and rejects task-specific arguments that are invalid for any selected task before starting a clean operation.
 - Boolean orchestration flags honor explicit true/false values; invalid values fail before any child process starts.
 - Missing explicitly named config files are errors in every tool; built-in defaults apply only when the default config path was implicit.
@@ -37,6 +38,7 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Individual legacy tools remain available for compatibility.
 - One shared JSON report schema and exit-code convention apply to unified orchestration.
 - Platform builds cover macOS, Linux, and Windows (amd64 and arm64 where supported).
+- Windows batch-based cleanup commands preserve executable paths and argument boundaries containing spaces and shell metacharacters.
 - Cleanup remains dry-run by default; destructive tasks require explicit `clean` intent and task-level safety controls.
 - Project cache deletion skips paths with tracked files or paths that Git does not mark ignored unless the user supplies the explicit `--unsafe-clean` override.
 - Git safety checks discover the repository from each cache directory, including projects nested under non-repository grouping directories.

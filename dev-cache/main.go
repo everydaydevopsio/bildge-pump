@@ -243,9 +243,13 @@ func writeStarterConfig(path string, force bool) error {
 }
 
 func loadConfig(path string) (*Config, error) {
+	return loadConfigWithDefaults(path, true)
+}
+
+func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		if os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
+		if allowMissing && os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
 			cfg := defaultConfig()
 			return &cfg, nil
 		}
@@ -267,6 +271,12 @@ func main() {
 	}
 
 	flag.Parse()
+	configExplicit := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configExplicit = true
+		}
+	})
 
 	if *flagInit {
 		if err := writeStarterConfig(*flagConfig, *flagForce); err != nil {
@@ -277,7 +287,7 @@ func main() {
 		return
 	}
 
-	cfg, err := loadConfig(*flagConfig)
+	cfg, err := loadConfigWithDefaults(*flagConfig, !configExplicit)
 	if err != nil {
 		fmt.Println("config error:", err)
 		fmt.Println("Tip: run with --init to create a starter config")

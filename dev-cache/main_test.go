@@ -416,12 +416,19 @@ func TestWriteStarterConfig(t *testing.T) {
 
 func TestLoadConfigUsesDefaultsWhenDefaultConfigIsMissing(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	cfg, err := loadConfig(defaultConfigPath())
+	cfg, err := loadConfigWithDefaults(defaultConfigPath(), true)
 	if err != nil {
 		t.Fatalf("loadConfig(default path) failed on a fresh install: %v", err)
 	}
 	if len(cfg.Languages) == 0 {
 		t.Fatal("default config has no languages")
+	}
+}
+
+func TestLoadConfigRejectsExplicitMissingDefaultPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if _, err := loadConfigWithDefaults(defaultConfigPath(), false); err == nil {
+		t.Fatal("explicit missing default config path should fail")
 	}
 }
 

@@ -536,10 +536,14 @@ func writeStarterConfig(path string, force bool) error {
 }
 
 func loadConfig(path string) (*Config, error) {
+	return loadConfigWithDefaults(path, true)
+}
+
+func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 	b, err := os.ReadFile(path)
 	var cfg Config
 	if err != nil {
-		if os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
+		if allowMissing && os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
 			cfg = defaultConfig()
 		} else {
 			return nil, err
@@ -924,10 +928,16 @@ func run() int {
 	}
 
 	flag.Parse()
+	configExplicit := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configExplicit = true
+		}
+	})
 	// Detect if no command-line args were provided (program name only)
 	noArgs := len(os.Args) == 1
 	if *flagListTargets {
-		cfg, err := loadConfig(*flagConfig)
+		cfg, err := loadConfigWithDefaults(*flagConfig, !configExplicit)
 		if err != nil {
 			fmt.Println("config error:", err)
 			fmt.Println("Tip: run with --init to create a starter config")
@@ -957,7 +967,7 @@ func run() int {
 		return 0
 	}
 
-	cfg, err := loadConfig(*flagConfig)
+	cfg, err := loadConfigWithDefaults(*flagConfig, !configExplicit)
 	if err != nil {
 		fmt.Println("config error:", err)
 		fmt.Println("Tip: run with --init to create a starter config")

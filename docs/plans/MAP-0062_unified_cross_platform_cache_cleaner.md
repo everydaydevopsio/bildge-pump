@@ -37,12 +37,14 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - [x] Fix review findings: built-in defaults for missing legacy default configs, Windows ZIP release archive, and safe unified flag routing/validation.
 - [x] Fix follow-up review findings: honor explicit boolean values, fail on missing explicit config paths, and locate nested project repositories from cache directories.
 - [x] Fix additional review findings: validate task names, honor all boolean flag values, reject missing explicit git-cleaner config, and show platform target cleanup commands during scans.
+- [x] Fix latest review findings: preserve explicit-config errors in legacy tools when the path equals the default, and safely invoke Windows batch commands with arguments intact.
 
 ## Test Strategy
 - Unit coverage for config location/precedence, task selection, platform dispatch, report schema, and exit-code mapping.
 - Regression coverage for fresh default-config startup, task flag routing, and rejecting invalid multi-task cleanup arguments before execution.
 - Regression coverage for explicit false values, missing explicit configs, and nested Git repositories in cache cleanup safety checks.
 - Regression coverage for unknown task rejection, all boolean flag values, explicit git-cleaner config errors, and report-only/planned platform targets.
+- Regression coverage for explicitly named missing legacy default paths and native Windows batch arguments containing spaces and metacharacters.
 - Regression coverage for unknown task rejection, all boolean flag values, explicit git-cleaner config errors, and report-only/planned platform targets.
 - CLI integration checks for dry-run, clean --all, named task execution, and missing/unsupported platform tools.
 - Cross-compilation/build checks for darwin, linux, and windows amd64/arm64.
@@ -54,5 +56,5 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - Validation after rollback: build and verify the three existing standalone applications and restore previous release configuration.
 
 ## Outcome
-- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners use in-memory defaults when their default config is missing; explicit missing configs fail; boolean values are respected; task names are allowlisted; nested Git repositories are found from cache paths; platform scans show planned commands for pathless targets; Windows archives match the PowerShell installer; and task arguments are validated before cleanup begins.
+- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners use in-memory defaults only for implicit defaults; explicit missing configs fail; boolean values are respected; task names are allowlisted; nested Git repositories are found from cache paths; platform scans show planned commands for pathless targets; Windows batch commands preserve argument boundaries; Windows archives match the PowerShell installer; and task arguments are validated before cleanup begins.
 - Evidence links/commands: `make test`; cross-build matrix for unified and platform commands; `goreleaser check --config .goreleaser.yaml`; `git diff --check`.

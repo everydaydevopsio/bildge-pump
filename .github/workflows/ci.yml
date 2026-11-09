@@ -61,3 +61,15 @@ jobs:
               GOOS="$os" GOARCH="$arch" go build -o /tmp/platform-cleaner ./cmd/platform-cache-cleaner
             done
           done
+
+  test-windows-batch-launcher:
+    name: Test Windows batch command arguments
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go.sum
+      - name: Test native batch argument handling
+        run: go test ./cmd/platform-cache-cleaner
