@@ -32,6 +32,38 @@ func TestInspectReturnsTraversalErrors(t *testing.T) {
 	}
 }
 
+func TestSelectTargetsValidatesEveryRequestedTarget(t *testing.T) {
+	cfg := Config{Targets: []Target{
+		{Name: "npm", Enabled: true},
+		{Name: "go", Enabled: true},
+	}}
+	tests := []struct {
+		name      string
+		selection string
+		want      map[string]bool
+		wantErr   bool
+	}{
+		{name: "all", selection: "all"},
+		{name: "selected targets", selection: "npm, go", want: map[string]bool{"npm": true, "go": true}},
+		{name: "unknown target", selection: "dokcer", wantErr: true},
+		{name: "mixed valid and unknown", selection: "npm,dokcer", wantErr: true},
+		{name: "empty selection", selection: "", wantErr: true},
+		{name: "empty target", selection: "npm,", wantErr: true},
+		{name: "all mixed with a target", selection: "all,npm", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := selectTargets(tt.selection, cfg)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("selectTargets(%q) error = %v, wantErr %v", tt.selection, err, tt.wantErr)
+			}
+			if err == nil && !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("selectTargets(%q) = %#v, want %#v", tt.selection, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestScanTargetReportIncludesPathlessDockerCommands(t *testing.T) {
 	target := Target{Name: "docker", Enabled: true, Cmds: [][]string{{"docker", "builder", "prune", "-af"}, {"docker", "system", "prune", "-af"}}}
 	report := Report{Findings: map[string][]Finding{}, Totals: map[string]int64{}}

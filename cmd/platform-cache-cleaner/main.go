@@ -139,6 +139,37 @@ func load(path string, allowMissing bool) (Config, error) {
 	}
 	return cfg, nil
 }
+
+func selectTargets(selection string, cfg Config) (map[string]bool, error) {
+	selection = strings.TrimSpace(selection)
+	if selection == "all" {
+		return nil, nil
+	}
+	if strings.TrimSpace(selection) == "" {
+		return nil, fmt.Errorf("target selection must not be empty")
+	}
+
+	known := make(map[string]struct{}, len(cfg.Targets))
+	for _, target := range cfg.Targets {
+		known[target.Name] = struct{}{}
+	}
+	selected := make(map[string]bool)
+	for _, name := range strings.Split(selection, ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			return nil, fmt.Errorf("target selection contains an empty target")
+		}
+		if name == "all" {
+			return nil, fmt.Errorf(`target "all" cannot be combined with other targets`)
+		}
+		if _, ok := known[name]; !ok {
+			return nil, fmt.Errorf("unknown target %q", name)
+		}
+		selected[name] = true
+	}
+	return selected, nil
+}
+
 func expand(p string) string {
 	h, _ := os.UserHomeDir()
 	if p == "~" {
@@ -252,11 +283,10 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "config error:", err)
 		return 1
 	}
-	selected := map[string]bool{}
-	if *targetsArg != "all" {
-		for _, n := range strings.Split(*targetsArg, ",") {
-			selected[strings.TrimSpace(n)] = true
-		}
+	selected, err := selectTargets(*targetsArg, cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "target selection error:", err)
+		return 1
 	}
 	rep := Report{OS: runtime.GOOS, Arch: runtime.GOARCH, When: time.Now().UTC(), DryRun: !*clean, Version: version, Findings: map[string][]Finding{}, Totals: map[string]int64{}, PlannedCommands: map[string][][]string{}, TargetStatus: map[string]string{}}
 	if hostname, err := os.Hostname(); err == nil {

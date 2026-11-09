@@ -47,6 +47,7 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Project cache deletion skips paths with tracked files or paths that Git does not mark ignored unless the user supplies the explicit `--unsafe-clean` override.
 - Git safety checks discover the repository from each cache directory, including projects nested under non-repository grouping directories.
 - Platform cleaner scans list each selected target and its planned cleanup commands, including targets such as Docker that have no filesystem paths.
+- Platform cleaner rejects unknown, empty, and mixed-invalid `--targets` selections before scanning or running cleanup commands.
 - Platform cleaner scans report filesystem inspection failures and return a partial-failure exit code; nonexistent optional cache paths are omitted without error.
 - macOS Homebrew post-install handling removes quarantine from the unified launcher as well as its bundled task executables.
 - Docker cleanup preserves named volumes by default; Android SDK updates and commands that install software or start services are excluded from cleanup defaults.
