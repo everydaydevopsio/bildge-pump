@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -8,6 +10,27 @@ import (
 	"strings"
 	"testing"
 )
+
+func TestInspectTreatsMissingOptionalCacheAsEmpty(t *testing.T) {
+	finding, err := inspect(filepath.Join(t.TempDir(), "not-installed-cache"))
+	if err != nil {
+		t.Fatalf("inspect missing optional path: %v", err)
+	}
+	if finding.Items != 0 || finding.SizeBytes != 0 {
+		t.Fatalf("missing optional path produced finding: %#v", finding)
+	}
+}
+
+func TestInspectReturnsTraversalErrors(t *testing.T) {
+	root := t.TempDir()
+	wantErr := fs.ErrPermission
+	_, err := inspectWithWalk(root, func(_ string, _ fs.WalkDirFunc) error {
+		return wantErr
+	})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("inspect error = %v, want %v", err, wantErr)
+	}
+}
 
 func TestScanTargetReportIncludesPathlessDockerCommands(t *testing.T) {
 	target := Target{Name: "docker", Enabled: true, Cmds: [][]string{{"docker", "builder", "prune", "-af"}, {"docker", "system", "prune", "-af"}}}

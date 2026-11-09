@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -147,28 +148,42 @@ func expand(p string) string {
 	}
 	return os.ExpandEnv(p)
 }
-func inspect(path string) Finding {
+func inspect(path string) (Finding, error) {
+	return inspectWithWalk(path, filepath.WalkDir)
+}
+
+func inspectWithWalk(path string, walk func(string, fs.WalkDirFunc) error) (Finding, error) {
 	f := Finding{Path: path}
 	info, err := os.Stat(path)
 	if err != nil {
-		return f
+		if errors.Is(err, os.ErrNotExist) {
+			return f, nil
+		}
+		return f, fmt.Errorf("stat: %w", err)
 	}
 	if !info.IsDir() {
 		f.SizeBytes = info.Size()
 		f.Items = 1
-		return f
+		return f, nil
 	}
-	_ = filepath.Walk(path, func(p string, i os.FileInfo, e error) error {
-		if e != nil {
-			return nil
+	err = walk(path, func(p string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
-		if i.Mode().IsRegular() {
-			f.SizeBytes += i.Size()
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if info.Mode().IsRegular() {
+			f.SizeBytes += info.Size()
 			f.Items++
 		}
 		return nil
 	})
-	return f
+	if err != nil {
+		return f, fmt.Errorf("walk: %w", err)
+	}
+	return f, nil
 }
 
 func targetCommand(executable string, args []string) (*exec.Cmd, error) {
@@ -257,7 +272,11 @@ func run() int {
 		}
 		addTargetToReport(&rep, t)
 		for _, p := range t.Paths {
-			f := inspect(expand(p))
+			f, inspectErr := inspect(expand(p))
+			if inspectErr != nil {
+				rep.Errors = append(rep.Errors, fmt.Sprintf("%s: could not inspect %s: %v", t.Name, p, inspectErr))
+				continue
+			}
 			if f.Items > 0 {
 				rep.Findings[t.Name] = append(rep.Findings[t.Name], f)
 				rep.Totals[t.Name] += f.SizeBytes
