@@ -38,6 +38,7 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - [x] Fix follow-up review findings: honor explicit boolean values, fail on missing explicit config paths, and locate nested project repositories from cache directories.
 - [x] Fix additional review findings: validate task names, honor all boolean flag values, reject missing explicit git-cleaner config, and show platform target cleanup commands during scans.
 - [x] Fix latest review findings: preserve explicit-config errors in legacy tools when the path equals the default, and safely invoke Windows batch commands with arguments intact.
+- [x] Fix new review findings: keep macOS scan progress off JSON stdout, stage local host binaries beside the unified launcher, reject nested Git repositories inside cache candidates, fail closed on cache inspection errors, and reject percent signs in Windows batch commands.
 
 ## Test Strategy
 - Unit coverage for config location/precedence, task selection, platform dispatch, report schema, and exit-code mapping.
@@ -45,7 +46,8 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - Regression coverage for explicit false values, missing explicit configs, and nested Git repositories in cache cleanup safety checks.
 - Regression coverage for unknown task rejection, all boolean flag values, explicit git-cleaner config errors, and report-only/planned platform targets.
 - Regression coverage for explicitly named missing legacy default paths and native Windows batch arguments containing spaces and metacharacters.
-- Regression coverage for unknown task rejection, all boolean flag values, explicit git-cleaner config errors, and report-only/planned platform targets.
+- Regression coverage for nested Git directories and gitfiles inside ignored cache candidates; native Windows tests reject percent signs in command paths and arguments.
+- Regression coverage for valid macOS JSON output; local build verification checks the launcher and host task executables share `build/`.
 - CLI integration checks for dry-run, clean --all, named task execution, and missing/unsupported platform tools.
 - Cross-compilation/build checks for darwin, linux, and windows amd64/arm64.
 - Safety checks that dry-run never executes clean commands and that sensitive targets remain explicitly gated.
@@ -56,5 +58,5 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - Validation after rollback: build and verify the three existing standalone applications and restore previous release configuration.
 
 ## Outcome
-- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners use in-memory defaults only for implicit defaults; explicit missing configs fail; boolean values are respected; task names are allowlisted; nested Git repositories are found from cache paths; platform scans show planned commands for pathless targets; Windows batch commands preserve argument boundaries; Windows archives match the PowerShell installer; and task arguments are validated before cleanup begins.
-- Evidence links/commands: `make test`; cross-build matrix for unified and platform commands; `goreleaser check --config .goreleaser.yaml`; `git diff --check`.
+- Result: Unified command, per-platform cleaners, XDG-aware configs, and installation/release wiring implemented. Legacy cleaners use in-memory defaults only for implicit defaults; explicit missing configs fail; boolean values are respected; task names are allowlisted; nested Git repositories are found from cache paths and rejected inside deletion candidates; cache inspection fails closed; platform scans show planned commands for pathless targets; macOS scan JSON remains structured; local builds stage host task binaries beside the launcher; Windows batch commands preserve supported argument boundaries and reject unsafe percent expansion; Windows archives match the PowerShell installer; and task arguments are validated before cleanup begins.
+- Evidence links/commands: `make test`; macOS JSON integration test included in `make test`; local host bundle build; cross-build matrix for unified and platform commands; native Windows batch integration test in CI; `goreleaser check --config .goreleaser.yaml`; `git diff --check`.

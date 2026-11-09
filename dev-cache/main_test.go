@@ -28,6 +28,54 @@ func TestSafeCachePathFindsNestedRepositoryFromCachePath(t *testing.T) {
 	}
 }
 
+func TestSafeCachePathRejectsNestedRepositoryInsideIgnoredCache(t *testing.T) {
+	repo := t.TempDir()
+	cache := filepath.Join(repo, "node_modules")
+	nested := filepath.Join(cache, "dependency")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", nested, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("nested git init: %v: %s", err, out)
+	}
+
+	allowed, reason := safeCachePath(Finding{Path: cache, Pattern: "node_modules"})
+	if allowed {
+		t.Fatal("safeCachePath allowed deletion of a cache containing a nested Git repository")
+	}
+	if !strings.Contains(reason, "nested Git repository") {
+		t.Fatalf("reason = %q, want nested Git repository explanation", reason)
+	}
+}
+
+func TestSafeCachePathRejectsGitfileAtCacheRoot(t *testing.T) {
+	repo := t.TempDir()
+	cache := filepath.Join(repo, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(cache, ".git"), []byte("gitdir: ../.git/worktrees/dependency\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	allowed, reason := safeCachePath(Finding{Path: cache, Pattern: "node_modules"})
+	if allowed || !strings.Contains(reason, "nested Git repository") {
+		t.Fatalf("safeCachePath = %v, %q; want reject nested Git gitfile", allowed, reason)
+	}
+}
+
 func TestCheckVersionFlag(t *testing.T) {
 	tests := []struct {
 		name string

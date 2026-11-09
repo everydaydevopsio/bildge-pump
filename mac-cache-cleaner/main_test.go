@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -299,6 +300,8 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunJSON(t *testing.T) {
+	oldJSON := *flagJSON
+	defer func() { *flagJSON = oldJSON }()
 	tmpDir := t.TempDir()
 	cfgPath := filepath.Join(tmpDir, "config.yaml")
 	// Minimal config with one fast target to avoid docker scan
@@ -332,6 +335,9 @@ func TestRunJSON(t *testing.T) {
 	}
 	if !bytes.Contains(out, []byte(`"dry_run"`)) {
 		t.Fatalf("expected JSON output, got: %s", out)
+	}
+	if !json.Valid(out) {
+		t.Fatalf("scan output is not valid JSON: %s", out)
 	}
 }
 

@@ -73,3 +73,15 @@ jobs:
           cache-dependency-path: go.sum
       - name: Test native batch argument handling
         run: go test ./cmd/platform-cache-cleaner
+
+  test-macos-task-json:
+    name: Test macOS task JSON integration
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go.sum
+      - name: Test structured macOS task output
+        run: go test ./cmd/cache-cleaner -run '^TestMacCleanerJSONIsStructured$'

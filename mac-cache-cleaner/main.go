@@ -748,8 +748,12 @@ func populateCommands(targets []Target, rep *Report) {
 // runFirstScan scans all targets and populates rep.Findings. Returns beforeTotals map.
 func runFirstScan(targets []Target, rep *Report) map[string]uint64 {
 	beforeTotals := make(map[string]uint64)
+	progress := os.Stdout
+	if *flagJSON {
+		progress = os.Stderr
+	}
 	for _, t := range targets {
-		fmt.Printf("Scanning [%s]...", t.Name)
+		_, _ = fmt.Fprintf(progress, "Scanning [%s]...", t.Name)
 		var sum int64
 
 		if strings.ToLower(t.Name) == "docker" {
@@ -779,7 +783,7 @@ func runFirstScan(targets []Target, rep *Report) map[string]uint64 {
 			}
 		}
 		beforeTotals[t.Name] = uint64(sum)
-		fmt.Printf(" done (%s)\n", human(sum))
+		_, _ = fmt.Fprintf(progress, " done (%s)\n", human(sum))
 	}
 	return beforeTotals
 }

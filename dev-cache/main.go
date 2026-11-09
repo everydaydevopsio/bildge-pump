@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -514,8 +515,26 @@ func safeCachePath(f Finding) (bool, string) {
 	}
 	root := strings.TrimSpace(string(out))
 	cachePath := f.Path
-	if resolved, err := filepath.EvalSymlinks(cachePath); err == nil {
-		cachePath = resolved
+	resolved, err := filepath.EvalSymlinks(cachePath)
+	if err != nil {
+		return false, "could not resolve cache path before checking nested repositories"
+	}
+	cachePath = resolved
+	nestedGitRepoErr := errors.New("nested Git repository found")
+	err = filepath.WalkDir(cachePath, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.Name() == ".git" {
+			return fmt.Errorf("%w at %s", nestedGitRepoErr, path)
+		}
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, nestedGitRepoErr) {
+			return false, err.Error() + "; pass --unsafe-clean to override"
+		}
+		return false, "could not inspect cache contents for nested Git repositories"
 	}
 	rel, err := filepath.Rel(root, cachePath)
 	if err != nil {

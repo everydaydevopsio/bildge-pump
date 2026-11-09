@@ -35,11 +35,12 @@ func TestWindowsBatchLauncherPreservesExecutableAndArgumentBoundaries(t *testing
 	if runtime.GOOS != "windows" {
 		t.Skip("native Windows batch invocation test")
 	}
+	t.Setenv("TEMP", `C:\cache-cleaner-expanded`)
 	executable := filepath.Join(t.TempDir(), "tool with spaces.cmd")
 	if err := os.WriteFile(executable, []byte("@echo off\r\necho %*\r\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	args := []string{"argument with spaces", "literal & echo INJECTED", "pipe|caret^", "100%TEMP%"}
+	args := []string{"argument with spaces", "literal & echo INJECTED", "pipe|caret^"}
 	cmd, err := windowsBatchCommand(executable, args)
 	if err != nil {
 		t.Fatal(err)
@@ -49,10 +50,16 @@ func TestWindowsBatchLauncherPreservesExecutableAndArgumentBoundaries(t *testing
 		t.Fatalf("batch command failed: %v: %s", err, output)
 	}
 	text := strings.TrimSpace(string(output))
-	if strings.Count(text, "\n") != 0 || !strings.Contains(text, `"argument with spaces"`) || !strings.Contains(text, `"literal & echo INJECTED"`) || !strings.Contains(text, `"pipe|caret^"`) || !strings.Contains(text, `"100%TEMP%"`) {
+	if strings.Count(text, "\n") != 0 || !strings.Contains(text, `"argument with spaces"`) || !strings.Contains(text, `"literal & echo INJECTED"`) || !strings.Contains(text, `"pipe|caret^"`) {
 		t.Fatalf("arguments were changed or split: %q", text)
 	}
 	if _, err := windowsBatchCommand(executable, []string{`literal " quote`}); err == nil {
 		t.Fatal("expected unrepresentable literal quote to be rejected")
+	}
+	if _, err := windowsBatchCommand(executable, []string{"100%TEMP%"}); err == nil {
+		t.Fatal("expected percent expansion syntax to be rejected")
+	}
+	if _, err := windowsBatchCommand("tool%TEMP%.cmd", nil); err == nil {
+		t.Fatal("expected percent expansion syntax in executable path to be rejected")
 	}
 }

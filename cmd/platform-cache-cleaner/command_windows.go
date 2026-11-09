@@ -30,9 +30,8 @@ func windowsBatchCommand(executable string, args []string) (*exec.Cmd, error) {
 }
 
 func quoteCmdArgument(arg string) (string, error) {
-	if strings.ContainsAny(arg, "\"\r\n") {
-		return "", fmt.Errorf("double quotes and newlines are unsupported by cmd.exe batch argument syntax")
+	if strings.ContainsAny(arg, "\"%\r\n") {
+		return "", fmt.Errorf("double quotes, percent signs, and newlines are unsupported by cmd.exe batch argument syntax")
 	}
-	arg = strings.ReplaceAll(arg, "%", "%%")
 	return `"` + arg + `"`, nil
 }

@@ -2,10 +2,15 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
+
+	yaml "gopkg.in/yaml.v3"
 )
 
 func TestPlanTaskArgsRoutesYesOnlyToDevCache(t *testing.T) {
@@ -142,5 +147,48 @@ func TestRunForceFalsePreservesExistingConfig(t *testing.T) {
 	}
 	if !bytes.Equal(got, original) {
 		t.Fatalf("--force=false replaced config: got %q, want %q", got, original)
+	}
+}
+
+func TestMacCleanerJSONIsStructured(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("requires the native macOS cleaner")
+	}
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	binDir := t.TempDir()
+	binary := filepath.Join(binDir, "mac-cache-cleaner")
+	build := exec.Command("go", "build", "-o", binary, ".")
+	build.Dir = filepath.Join(root, "mac-cache-cleaner")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build mac-cache-cleaner: %v: %s", err, output)
+	}
+	path := filepath.Join(binDir, "config.yaml")
+	cfg := map[string]any{
+		"version": 1,
+		"options": map[string]any{},
+		"targets": []map[string]any{{"name": "integration", "enabled": true, "paths": []string{binDir}}},
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	result := runTask("mac-cache-cleaner", []string{"--config", path, "--targets", "integration"}, true)
+	if result.ExitCode != 0 {
+		t.Fatalf("mac-cache-cleaner exited %d: %s", result.ExitCode, result.Error)
+	}
+	var report map[string]json.RawMessage
+	if err := json.Unmarshal(result.Output, &report); err != nil {
+		t.Fatalf("task output is not a JSON object: %v; output=%s", err, result.Output)
+	}
+	var findings map[string][]map[string]any
+	if err := json.Unmarshal(report["findings"], &findings); err != nil || len(findings["integration"]) == 0 {
+		t.Fatalf("structured macOS findings missing: %v; output=%s", err, result.Output)
 	}
 }

@@ -24,6 +24,7 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - `--config` overrides the default path.
 - Existing tool configs remain readable at their XDG-aware per-tool paths, and `git-cleaner` gains config support for its default scan path.
 - A first run works with built-in sensible defaults; `--init` writes a customizable config.
+- A local `make cache-cleaner` build places the launcher and all host-platform task executables together under `build/`.
 - Legacy component executables use their built-in starter config when their default XDG/platform config is absent; an explicitly supplied missing `--config` path remains an error.
 - Explicit missing component configs remain errors even when the supplied path happens to equal that tool's default config path.
 - The unified CLI consumes orchestration flags itself, routes `--yes` only to project cache cleanup, and rejects task-specific arguments that are invalid for any selected task before starting a clean operation.
@@ -37,8 +38,9 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - `cache-cleaner clean --all` runs platform-appropriate cleanup tasks; `cache-cleaner clean <task>` or `cache-cleaner <task>` selects one task.
 - Individual legacy tools remain available for compatibility.
 - One shared JSON report schema and exit-code convention apply to unified orchestration.
+- `cache-cleaner scan --json` emits a valid JSON envelope with each selected task's structured report; task progress stays on stderr.
 - Platform builds cover macOS, Linux, and Windows (amd64 and arm64 where supported).
-- Windows batch-based cleanup commands preserve executable paths and argument boundaries containing spaces and shell metacharacters.
+- Windows batch-based cleanup commands preserve executable paths and argument boundaries containing spaces and shell metacharacters; values containing percent signs are rejected because `cmd.exe` expands them before batch execution.
 - Cleanup remains dry-run by default; destructive tasks require explicit `clean` intent and task-level safety controls.
 - Project cache deletion skips paths with tracked files or paths that Git does not mark ignored unless the user supplies the explicit `--unsafe-clean` override.
 - Git safety checks discover the repository from each cache directory, including projects nested under non-repository grouping directories.
