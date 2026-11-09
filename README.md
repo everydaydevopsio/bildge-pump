@@ -113,7 +113,7 @@ Add this to your shell profile (`~/.zshrc` or `~/.bashrc`) to make it permanent.
 
 - The script installs from the latest GitHub release archives.
 - `-b <dir>` is mandatory and determines where binaries are written.
-- Use `-a <app>` to install a single binary (`dev-cache`, `git-cleaner`, or `mac-cache-cleaner`); omit `-a` to install all three.
+- Use `-a cache-cleaner` to install the unified launcher with `dev-cache`, `git-cleaner`, and the current OS platform cleaner. Use `-a <standalone-app>` to install only that standalone tool; omit `-a` to install the complete toolkit.
 - The script exits early with an error (without partial installs) if required flags or tools are missing.
 
 ## Quick Start

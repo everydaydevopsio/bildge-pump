@@ -76,12 +76,12 @@ endif
 	@go build -o build/cache-cleaner$(HOST_BIN_SUFFIX) ./cmd/cache-cleaner
 
 linux-cache-cleaner:
-	@mkdir -p build
-	@GOOS=linux GOARCH=amd64 go build -o build/linux-cache-cleaner ./cmd/platform-cache-cleaner
+	@mkdir -p build/cross/linux/amd64
+	@GOOS=linux GOARCH=amd64 go build -o build/cross/linux/amd64/linux-cache-cleaner ./cmd/platform-cache-cleaner
 
 windows-cache-cleaner:
-	@mkdir -p build
-	@GOOS=windows GOARCH=amd64 go build -o build/windows-cache-cleaner.exe ./cmd/platform-cache-cleaner
+	@mkdir -p build/cross/windows/amd64
+	@GOOS=windows GOARCH=amd64 go build -o build/cross/windows/amd64/windows-cache-cleaner.exe ./cmd/platform-cache-cleaner
 
 # Convenience targets that run in all directories
 test:
@@ -90,6 +90,7 @@ test:
 	@$(MAKE) -C git-cleaner test
 	@$(MAKE) -C mac-cache-cleaner test
 	@go test ./cmd/...
+	@sh scripts/test-install.sh
 
 fmt:
 	@echo "Formatting all applications..."

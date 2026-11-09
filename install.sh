@@ -77,7 +77,11 @@ if [ -n "$APP_FILTER" ]; then
     linux-cache-cleaner) [ "$OS" = "linux" ] || error "linux-cache-cleaner is only available on Linux" ;;
     *) error "invalid app: $APP_FILTER" ;;
   esac
-  APPS="$APP_FILTER"
+  if [ "$APP_FILTER" = "cache-cleaner" ]; then
+    APPS="cache-cleaner dev-cache git-cleaner $PLATFORM_APP"
+  else
+    APPS="$APP_FILTER"
+  fi
 fi
 
 UNAME_M="$(uname -m)"

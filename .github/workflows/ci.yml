@@ -85,3 +85,11 @@ jobs:
           cache-dependency-path: go.sum
       - name: Test structured macOS task output
         run: go test ./cmd/cache-cleaner -run '^TestMacCleanerJSONIsStructured$'
+
+  test-unix-installer:
+    name: Test Unix installer selections
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test unified and standalone installs
+        run: sh scripts/test-install.sh

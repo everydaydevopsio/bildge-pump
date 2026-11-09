@@ -25,6 +25,8 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Existing tool configs remain readable at their XDG-aware per-tool paths, and `git-cleaner` gains config support for its default scan path.
 - A first run works with built-in sensible defaults; `--init` writes a customizable config.
 - A local `make cache-cleaner` build places the launcher and all host-platform task executables together under `build/`.
+- Cross-build cleaner targets write into OS/architecture-specific subdirectories and do not overwrite the native bundle under `build/`.
+- Selecting `cache-cleaner` in `install.sh` installs the launcher and all task executables it needs; selecting a standalone cleaner still installs only that tool.
 - Legacy component executables use their built-in starter config when their default XDG/platform config is absent; an explicitly supplied missing `--config` path remains an error.
 - Explicit missing component configs remain errors even when the supplied path happens to equal that tool's default config path.
 - The unified CLI consumes orchestration flags itself, routes `--yes` only to project cache cleanup, and rejects task-specific arguments that are invalid for any selected task before starting a clean operation.
