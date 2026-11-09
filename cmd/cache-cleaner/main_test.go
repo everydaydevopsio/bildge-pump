@@ -9,17 +9,28 @@ import (
 )
 
 func TestPlanTaskArgsRoutesYesOnlyToDevCache(t *testing.T) {
-	got, err := planTaskArgs([]string{"dev-cache", "git-cleaner", "linux-cache-cleaner"}, nil, true, "/tmp/src", true)
+	platformTask := platformCleaner()
+	got, err := planTaskArgs([]string{"dev-cache", "git-cleaner", platformTask}, nil, true, "/tmp/src", true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := map[string][]string{
-		"dev-cache":           {"--scan", "/tmp/src", "--clean", "--yes"},
-		"git-cleaner":         {"--scan", "/tmp/src", "--clean"},
-		"linux-cache-cleaner": {"--clean"},
+		"dev-cache":   {"--scan", "/tmp/src", "--clean", "--yes"},
+		"git-cleaner": {"--scan", "/tmp/src", "--clean"},
+		platformTask:  {"--clean"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("planTaskArgs() = %#v, want %#v", got, want)
+	}
+}
+
+func TestPlanTaskArgsRejectsUnknownTasksBeforeLaunching(t *testing.T) {
+	for _, task := range []string{"sh", "./cleaner", "cache-cleaner"} {
+		t.Run(task, func(t *testing.T) {
+			if _, err := planTaskArgs([]string{task}, nil, false, "/tmp/src", false); err == nil {
+				t.Fatalf("planTaskArgs accepted unknown task %q", task)
+			}
+		})
 	}
 }
 
@@ -107,5 +118,29 @@ func TestParseBooleanFalseDoesNotRequestCleanup(t *testing.T) {
 	}
 	if !cleanupRequested("clean", false, false, nil) {
 		t.Fatal("clean command should request cleanup without a --clean override")
+	}
+}
+
+func TestRunInitFalseDoesNotCreateConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "new.yaml")
+	_ = run([]string{"--config", path, "--init=false"})
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("--init=false created config: stat error %v", err)
+	}
+}
+
+func TestRunForceFalsePreservesExistingConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "existing.yaml")
+	original := []byte("custom: value\n")
+	if err := os.WriteFile(path, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_ = run([]string{"--config", path, "--init", "--force=false"})
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, original) {
+		t.Fatalf("--force=false replaced config: got %q, want %q", got, original)
 	}
 }

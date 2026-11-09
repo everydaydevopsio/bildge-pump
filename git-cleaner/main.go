@@ -66,6 +66,13 @@ func loadConfig(path string) (Config, error) {
 	return cfg, nil
 }
 
+func configLoadError(err error, explicit bool) error {
+	if err == nil || (os.IsNotExist(err) && !explicit) {
+		return nil
+	}
+	return err
+}
+
 func writeStarterConfig(path string, force bool) error {
 	if _, err := os.Stat(path); err == nil {
 		if !force {
@@ -297,6 +304,12 @@ func main() {
 	}
 
 	flag.Parse()
+	configExplicit := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configExplicit = true
+		}
+	})
 
 	if *flagInit {
 		if err := writeStarterConfig(*flagConfig, *flagForce); err != nil {
@@ -307,8 +320,8 @@ func main() {
 		return
 	}
 	cfg, configErr := loadConfig(*flagConfig)
-	if configErr != nil && !os.IsNotExist(configErr) {
-		fmt.Fprintln(os.Stderr, "config error:", configErr)
+	if err := configLoadError(configErr, configExplicit); err != nil {
+		fmt.Fprintln(os.Stderr, "config error:", err)
 		os.Exit(1)
 	}
 	scanRoot := *flagScan

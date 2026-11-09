@@ -27,7 +27,8 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Legacy component executables use their built-in starter config when their default XDG/platform config is absent; an explicitly supplied missing `--config` path remains an error.
 - The unified CLI consumes orchestration flags itself, routes `--yes` only to project cache cleanup, and rejects task-specific arguments that are invalid for any selected task before starting a clean operation.
 - Boolean orchestration flags honor explicit true/false values; invalid values fail before any child process starts.
-- Missing explicitly named config files are errors in the unified and platform cleaners; built-in defaults apply only when the default config path was implicit.
+- Missing explicitly named config files are errors in every tool; built-in defaults apply only when the default config path was implicit.
+- The unified command accepts only known bundled task names and never launches arbitrary executables from configuration.
 - Windows release archives are ZIP files matching `install.ps1`; macOS and Linux retain tar.gz archives.
 
 ### CLI and behavior
@@ -39,6 +40,7 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Cleanup remains dry-run by default; destructive tasks require explicit `clean` intent and task-level safety controls.
 - Project cache deletion skips paths with tracked files or paths that Git does not mark ignored unless the user supplies the explicit `--unsafe-clean` override.
 - Git safety checks discover the repository from each cache directory, including projects nested under non-repository grouping directories.
+- Platform cleaner scans list each selected target and its planned cleanup commands, including targets such as Docker that have no filesystem paths.
 - Docker cleanup preserves named volumes by default; Android SDK updates and commands that install software or start services are excluded from cleanup defaults.
 
 ---

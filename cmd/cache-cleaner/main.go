@@ -234,11 +234,26 @@ func run(args []string) int {
 			}
 			scanOverride = value
 		case "--init":
-			init = true
+			parsed, err := parseBooleanFlag(value, hasValue)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "invalid --init value:", err)
+				return 1
+			}
+			init = parsed
 		case "--force":
-			force = true
+			parsed, err := parseBooleanFlag(value, hasValue)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "invalid --force value:", err)
+				return 1
+			}
+			force = parsed
 		case "--json":
-			jsonMode = true
+			parsed, err := parseBooleanFlag(value, hasValue)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "invalid --json value:", err)
+				return 1
+			}
+			jsonMode = parsed
 		case "--yes":
 			parsed, err := parseBooleanFlag(value, hasValue)
 			if err != nil {
@@ -346,6 +361,11 @@ func planTaskArgs(tasks, extra []string, clean bool, scanPath string, yes bool) 
 		"linux-cache-cleaner":   {"--targets": true},
 		"windows-cache-cleaner": {"--targets": true},
 	}
+	for _, task := range tasks {
+		if !isSupportedTask(task) {
+			return nil, fmt.Errorf("unsupported task %q", task)
+		}
+	}
 	for i := 0; i < len(extra); i++ {
 		key, _, hasValue := strings.Cut(extra[i], "=")
 		if !strings.HasPrefix(key, "--") {
@@ -392,6 +412,10 @@ func planTaskArgs(tasks, extra []string, clean bool, scanPath string, yes bool) 
 		planned[task] = child
 	}
 	return planned, nil
+}
+
+func isSupportedTask(task string) bool {
+	return task == "dev-cache" || task == "git-cleaner" || (platformCleaner() != "" && task == platformCleaner())
 }
 
 func containsArg(args []string, target string) bool {

@@ -38,15 +38,41 @@ type Finding struct {
 	Items     int    `json:"items"`
 }
 type Report struct {
-	Hostname string               `json:"hostname,omitempty"`
-	OS       string               `json:"os"`
-	Arch     string               `json:"arch"`
-	When     time.Time            `json:"when"`
-	DryRun   bool                 `json:"dry_run"`
-	Version  string               `json:"version"`
-	Findings map[string][]Finding `json:"findings"`
-	Totals   map[string]int64     `json:"totals_by_target_bytes"`
-	Errors   []string             `json:"errors,omitempty"`
+	Hostname        string                `json:"hostname,omitempty"`
+	OS              string                `json:"os"`
+	Arch            string                `json:"arch"`
+	When            time.Time             `json:"when"`
+	DryRun          bool                  `json:"dry_run"`
+	Version         string                `json:"version"`
+	Findings        map[string][]Finding  `json:"findings"`
+	Totals          map[string]int64      `json:"totals_by_target_bytes"`
+	PlannedCommands map[string][][]string `json:"planned_commands"`
+	TargetStatus    map[string]string     `json:"target_status,omitempty"`
+	Errors          []string              `json:"errors,omitempty"`
+}
+
+func addTargetToReport(report *Report, target Target) {
+	if report.Findings == nil {
+		report.Findings = make(map[string][]Finding)
+	}
+	if report.Totals == nil {
+		report.Totals = make(map[string]int64)
+	}
+	if report.PlannedCommands == nil {
+		report.PlannedCommands = make(map[string][][]string)
+	}
+	if report.TargetStatus == nil {
+		report.TargetStatus = make(map[string]string)
+	}
+	if _, ok := report.Findings[target.Name]; !ok {
+		report.Findings[target.Name] = []Finding{}
+	}
+	for _, command := range target.Cmds {
+		report.PlannedCommands[target.Name] = append(report.PlannedCommands[target.Name], append([]string(nil), command...))
+	}
+	if len(target.Cmds) == 0 {
+		report.TargetStatus[target.Name] = "report-only"
+	}
 }
 
 func cleanerName() string {
@@ -209,7 +235,7 @@ func run() int {
 			selected[strings.TrimSpace(n)] = true
 		}
 	}
-	rep := Report{OS: runtime.GOOS, Arch: runtime.GOARCH, When: time.Now().UTC(), DryRun: !*clean, Version: version, Findings: map[string][]Finding{}, Totals: map[string]int64{}}
+	rep := Report{OS: runtime.GOOS, Arch: runtime.GOARCH, When: time.Now().UTC(), DryRun: !*clean, Version: version, Findings: map[string][]Finding{}, Totals: map[string]int64{}, PlannedCommands: map[string][][]string{}, TargetStatus: map[string]string{}}
 	if hostname, err := os.Hostname(); err == nil {
 		rep.Hostname = hostname
 	}
@@ -221,6 +247,7 @@ func run() int {
 		if !t.Enabled || (len(selected) > 0 && !selected[t.Name]) {
 			continue
 		}
+		addTargetToReport(&rep, t)
 		for _, p := range t.Paths {
 			f := inspect(expand(p))
 			if f.Items > 0 {
@@ -259,8 +286,19 @@ func run() int {
 		enc.SetIndent("", "  ")
 		_ = enc.Encode(rep)
 	} else {
-		for n, fs := range rep.Findings {
-			fmt.Printf("%-22s %d bytes across %d paths\n", n, rep.Totals[n], len(fs))
+		for _, t := range cfg.Targets {
+			if !t.Enabled || (len(selected) > 0 && !selected[t.Name]) {
+				continue
+			}
+			fmt.Printf("%-22s %d bytes across %d paths\n", t.Name, rep.Totals[t.Name], len(rep.Findings[t.Name]))
+			if !*clean {
+				if len(t.Cmds) == 0 {
+					fmt.Println("  Report only: no cleanup command configured.")
+				}
+				for _, command := range t.Cmds {
+					fmt.Printf("  Planned cleanup: %s\n", strings.Join(command, " "))
+				}
+			}
 		}
 		if !*clean {
 			fmt.Println("Dry run. Pass --clean to execute available cleanup commands.")
