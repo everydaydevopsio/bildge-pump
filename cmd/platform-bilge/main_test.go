@@ -128,6 +128,38 @@ func TestLoadMigratesLegacyDefaultConfig(t *testing.T) {
 	}
 }
 
+func TestLoadUsesSameDefaultsForLegacyAndMigratedConfig(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	legacyPath := legacyConfigPath()
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	data, err := yaml.Marshal(Config{Version: 1, Targets: []Target{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacyPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := load(configPath(), true)
+	if err != nil {
+		t.Fatalf("first load: %v", err)
+	}
+	second, err := load(configPath(), true)
+	if err != nil {
+		t.Fatalf("second load: %v", err)
+	}
+	if len(first.Targets) == 0 {
+		t.Fatal("first migration load returned no default targets")
+	}
+	if !reflect.DeepEqual(first.Targets, second.Targets) {
+		t.Fatalf("first-load targets differ from subsequent load: first=%#v second=%#v", first.Targets, second.Targets)
+	}
+}
+
 func TestLoadKeepsLegacyConfigWhenMigrationWriteFails(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("APPDATA", root)

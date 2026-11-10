@@ -157,6 +157,7 @@ func load(path string, allowMissing bool) (Config, error) {
 					if err := yaml.Unmarshal(legacy, &cfg); err != nil {
 						return cfg, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
 					}
+					cfg = withDefaultTargets(cfg)
 					if err := migrateConfigFile(path, legacy); err != nil {
 						fmt.Fprintf(os.Stderr, "warning: could not copy migrated config to %s: %v\n", path, err)
 					} else {
@@ -177,10 +178,15 @@ func load(path string, allowMissing bool) (Config, error) {
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return cfg, err
 	}
+	cfg = withDefaultTargets(cfg)
+	return cfg, nil
+}
+
+func withDefaultTargets(cfg Config) Config {
 	if len(cfg.Targets) == 0 {
 		cfg.Targets = defaultTargets()
 	}
-	return cfg, nil
+	return cfg
 }
 
 func migrateConfigFile(path string, data []byte) error {
