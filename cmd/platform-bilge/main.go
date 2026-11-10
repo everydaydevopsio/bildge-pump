@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	version             = "dev"
+	commit              = "none"
+	date                = "unknown"
+	createMigrationTemp = os.CreateTemp
 )
 
 type Target struct {
@@ -103,6 +104,22 @@ func legacyConfigPath() string {
 	}
 	return filepath.Join(configRoot(), name, "config.yaml")
 }
+func rejectLegacyConfigInit(path string, force bool) error {
+	if force || filepath.Clean(path) != filepath.Clean(configPath()) {
+		return nil
+	}
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if _, err := os.Stat(legacyConfigPath()); err == nil {
+		return fmt.Errorf("existing configuration found at %s; run a normal command to migrate it, or use --force to replace it", legacyConfigPath())
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
 func defaultTargets() []Target {
 	home, _ := os.UserHomeDir()
 	cache, _ := os.UserCacheDir()
@@ -167,10 +184,32 @@ func load(path string, allowMissing bool) (Config, error) {
 }
 
 func migrateConfigFile(path string, data []byte) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o600)
+	tmp, err := createMigrationTemp(dir, ".bilge-config-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }
 
 func selectTargets(selection string, cfg Config) (map[string]bool, error) {
@@ -279,6 +318,10 @@ func run() int {
 		}
 	})
 	if *init {
+		if err := rejectLegacyConfigInit(*config, *force); err != nil {
+			fmt.Fprintln(os.Stderr, "config error:", err)
+			return 1
+		}
 		if _, err := os.Stat(*config); err == nil {
 			if !*force {
 				fmt.Fprintln(os.Stderr, "config exists; use --force to overwrite")

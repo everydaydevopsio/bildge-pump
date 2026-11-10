@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -808,8 +809,16 @@ func TestLoadConfigUsesDefaultsWhenDefaultConfigIsMissing(t *testing.T) {
 
 func TestLoadConfigMigratesLegacyDefaultConfig(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("APPDATA", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
 	legacyPath := legacyDefaultConfigPath()
+	newPath := defaultConfigPath()
+	for _, path := range []string{legacyPath, newPath} {
+		rel, err := filepath.Rel(root, path)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			t.Fatalf("config path %q is outside temporary config root %q", path, root)
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -821,6 +830,9 @@ func TestLoadConfigMigratesLegacyDefaultConfig(t *testing.T) {
 	if err := os.WriteFile(legacyPath, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := rejectLegacyConfigInit(defaultConfigPath(), false); err == nil {
+		t.Fatal("initialization should refuse to replace existing legacy settings")
+	}
 
 	got, err := loadConfigWithDefaults(defaultConfigPath(), true)
 	if err != nil {
@@ -831,6 +843,42 @@ func TestLoadConfigMigratesLegacyDefaultConfig(t *testing.T) {
 	}
 	if _, err := os.Stat(defaultConfigPath()); err != nil {
 		t.Fatalf("new config was not written: %v", err)
+	}
+}
+
+func TestLoadKeepsLegacyConfigWhenMigrationWriteFails(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	legacyPath := legacyDefaultConfigPath()
+	newPath := defaultConfigPath()
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	legacy := Config{Version: 1, Targets: []Target{{Name: "docker", Enabled: false}}}
+	data, err := yaml.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacyPath, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	oldCreateTemp := createMigrationTemp
+	createMigrationTemp = func(string, string) (*os.File, error) { return nil, errors.New("simulated disk error") }
+	defer func() { createMigrationTemp = oldCreateTemp }()
+
+	got, err := loadConfigWithDefaults(newPath, true)
+	if err != nil {
+		t.Fatalf("loadConfigWithDefaults: %v", err)
+	}
+	if len(got.Targets) != 1 || got.Targets[0].Enabled {
+		t.Fatalf("legacy settings were not retained: %#v", got.Targets)
+	}
+	if _, err := os.Stat(newPath); !os.IsNotExist(err) {
+		t.Fatalf("failed migration left a destination config: %v", err)
+	}
+	if _, err := os.Stat(legacyPath); err != nil {
+		t.Fatalf("legacy config was not preserved: %v", err)
 	}
 }
 

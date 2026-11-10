@@ -111,6 +111,9 @@ func TestLoadMigratesLegacyDefaultConfig(t *testing.T) {
 	if err := os.WriteFile(legacyPath, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := rejectLegacyConfigInit(newPath, false); err == nil {
+		t.Fatal("initialization should refuse to replace existing legacy settings")
+	}
 
 	got, err := load(configPath(), true)
 	if err != nil {
@@ -121,6 +124,42 @@ func TestLoadMigratesLegacyDefaultConfig(t *testing.T) {
 	}
 	if _, err := os.Stat(newPath); err != nil {
 		t.Fatalf("new config was not written: %v", err)
+	}
+}
+
+func TestLoadKeepsLegacyConfigWhenMigrationWriteFails(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	legacyPath := legacyConfigPath()
+	newPath := configPath()
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	legacy := Config{Version: 1, Targets: []Target{{Name: "docker", Enabled: false}}}
+	data, err := yaml.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacyPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	oldCreateTemp := createMigrationTemp
+	createMigrationTemp = func(string, string) (*os.File, error) { return nil, errors.New("simulated disk error") }
+	defer func() { createMigrationTemp = oldCreateTemp }()
+
+	got, err := load(newPath, true)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if len(got.Targets) != 1 || got.Targets[0].Enabled {
+		t.Fatalf("legacy settings were not retained: %#v", got.Targets)
+	}
+	if _, err := os.Stat(newPath); !os.IsNotExist(err) {
+		t.Fatalf("failed migration left a destination config: %v", err)
+	}
+	if _, err := os.Stat(legacyPath); err != nil {
+		t.Fatalf("legacy config was not preserved: %v", err)
 	}
 }
 
