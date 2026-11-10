@@ -209,7 +209,7 @@ func migrateConfigFile(path string, data []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpPath, path)
+	return os.Link(tmpPath, path)
 }
 
 func selectTargets(selection string, cfg Config) (map[string]bool, error) {

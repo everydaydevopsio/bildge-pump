@@ -193,7 +193,7 @@ func migrateConfigFile(path string, data []byte, mode os.FileMode) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpPath, path)
+	return os.Link(tmpPath, path)
 }
 
 func ensureDir(p string) error { return os.MkdirAll(filepath.Dir(p), 0o755) }

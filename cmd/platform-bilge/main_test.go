@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"io/fs"
 	"os"
@@ -160,6 +161,31 @@ func TestLoadKeepsLegacyConfigWhenMigrationWriteFails(t *testing.T) {
 	}
 	if _, err := os.Stat(legacyPath); err != nil {
 		t.Fatalf("legacy config was not preserved: %v", err)
+	}
+}
+
+func TestMigrateConfigFileDoesNotReplaceExistingConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	want := []byte("user config")
+	if err := os.WriteFile(path, want, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrateConfigFile(path, []byte("legacy config")); err == nil {
+		t.Fatal("migration should not replace a config created concurrently")
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("existing config = %q, want %q", got, want)
+	}
+	leftovers, err := filepath.Glob(filepath.Join(filepath.Dir(path), ".bilge-config-*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(leftovers) != 0 {
+		t.Fatalf("migration left temporary files: %v", leftovers)
 	}
 }
 
