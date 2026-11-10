@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	yaml "gopkg.in/yaml.v3"
 )
 
 func TestInspectTreatsMissingOptionalCacheAsEmpty(t *testing.T) {
@@ -83,6 +85,33 @@ func TestLoadRequiresExplicitConfigWhenRequested(t *testing.T) {
 	}
 	if cfg, err := load(missing, true); err != nil || len(cfg.Targets) == 0 {
 		t.Fatalf("implicit default config = %#v, %v; want default targets", cfg, err)
+	}
+}
+
+func TestLoadMigratesLegacyDefaultConfig(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	legacyPath := legacyConfigPath()
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	legacy := Config{Version: 1, Targets: []Target{{Name: "docker", Enabled: false}}}
+	data, err := yaml.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacyPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := load(configPath(), true)
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if len(got.Targets) != 1 || got.Targets[0].Name != "docker" || got.Targets[0].Enabled {
+		t.Fatalf("migrated targets = %#v, want disabled docker target", got.Targets)
+	}
+	if _, err := os.Stat(configPath()); err != nil {
+		t.Fatalf("new config was not written: %v", err)
 	}
 }
 

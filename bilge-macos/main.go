@@ -126,19 +126,27 @@ type Report struct {
 // ----- Utilities -----
 
 func defaultConfigPath() string {
+	return filepath.Join(configRoot(), "bilge-macos", "config.yaml")
+}
+
+func configRoot() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" && filepath.IsAbs(xdg) && runtime.GOOS != "windows" {
-		return filepath.Join(xdg, "bilge-macos", "config.yaml")
+		return xdg
 	}
 	if runtime.GOOS == "windows" {
 		if dir, err := os.UserConfigDir(); err == nil && dir != "" {
-			return filepath.Join(dir, "bilge-macos", "config.yaml")
+			return dir
 		}
 	}
 	h, _ := os.UserHomeDir()
 	if h == "" {
-		return "./config.yaml"
+		return "."
 	}
-	return filepath.Join(h, ".config", "bilge-macos", "config.yaml")
+	return filepath.Join(h, ".config")
+}
+
+func legacyDefaultConfigPath() string {
+	return filepath.Join(configRoot(), "mac-cache-cleaner", "config.yaml")
 }
 
 func ensureDir(p string) error { return os.MkdirAll(filepath.Dir(p), 0o755) }
@@ -544,7 +552,23 @@ func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 	var cfg Config
 	if err != nil {
 		if allowMissing && os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
-			cfg = defaultConfig()
+			legacyPath := legacyDefaultConfigPath()
+			if legacy, legacyErr := os.ReadFile(legacyPath); legacyErr == nil {
+				if err := yaml.Unmarshal(legacy, &cfg); err != nil {
+					return nil, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
+				}
+				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+					return nil, fmt.Errorf("create config directory: %w", err)
+				}
+				if err := os.WriteFile(path, legacy, 0o644); err != nil {
+					return nil, fmt.Errorf("migrate config to %s: %w", path, err)
+				}
+				fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)
+			} else if !os.IsNotExist(legacyErr) {
+				return nil, fmt.Errorf("read legacy config %s: %w", legacyPath, legacyErr)
+			} else {
+				cfg = defaultConfig()
+			}
 		} else {
 			return nil, err
 		}

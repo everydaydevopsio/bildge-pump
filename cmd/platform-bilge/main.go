@@ -83,15 +83,25 @@ func cleanerName() string {
 	return "bilge-linux"
 }
 func configPath() string {
+	return filepath.Join(configRoot(), cleanerName(), "config.yaml")
+}
+func configRoot() string {
 	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" && filepath.IsAbs(x) && runtime.GOOS != "windows" {
-		return filepath.Join(x, cleanerName(), "config.yaml")
+		return x
 	}
 	d, err := os.UserConfigDir()
 	if err != nil || d == "" {
 		h, _ := os.UserHomeDir()
 		d = filepath.Join(h, ".config")
 	}
-	return filepath.Join(d, cleanerName(), "config.yaml")
+	return d
+}
+func legacyConfigPath() string {
+	name := "linux-cache-cleaner"
+	if runtime.GOOS == "windows" {
+		name = "windows-cache-cleaner"
+	}
+	return filepath.Join(configRoot(), name, "config.yaml")
 }
 func defaultTargets() []Target {
 	home, _ := os.UserHomeDir()
@@ -124,6 +134,24 @@ func load(path string, allowMissing bool) (Config, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		if allowMissing {
+			if filepath.Clean(path) == filepath.Clean(configPath()) {
+				legacyPath := legacyConfigPath()
+				if legacy, legacyErr := os.ReadFile(legacyPath); legacyErr == nil {
+					if err := yaml.Unmarshal(legacy, &cfg); err != nil {
+						return cfg, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
+					}
+					if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+						return cfg, fmt.Errorf("create config directory: %w", err)
+					}
+					if err := os.WriteFile(path, legacy, 0o600); err != nil {
+						return cfg, fmt.Errorf("migrate config to %s: %w", path, err)
+					}
+					fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)
+					return cfg, nil
+				} else if !errors.Is(legacyErr, os.ErrNotExist) {
+					return cfg, fmt.Errorf("read legacy config %s: %w", legacyPath, legacyErr)
+				}
+			}
 			return cfg, nil
 		}
 		return cfg, fmt.Errorf("config file %s does not exist", path)

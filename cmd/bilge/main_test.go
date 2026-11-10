@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 
 	yaml "gopkg.in/yaml.v3"
@@ -75,6 +76,37 @@ func TestLoadConfigWithDefaultsRejectsMissingExplicitConfig(t *testing.T) {
 	}
 	if cfg, err := loadConfigWithDefaults(missing, true); err != nil || len(cfg.Tasks) == 0 {
 		t.Fatalf("implicit default config = %#v, %v; want default tasks", cfg, err)
+	}
+}
+
+func TestLoadConfigMigratesRenamedPlatformTasks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	original := Config{Version: 1, ScanPath: "/work", Tasks: []string{"dev-cache", "linux-cache-cleaner", "git-cleaner"}}
+	data, err := yaml.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := loadConfigWithDefaults(path, false)
+	if err != nil {
+		t.Fatalf("loadConfigWithDefaults: %v", err)
+	}
+	want := []string{"dev-cache", "bilge-linux", "git-cleaner"}
+	if !reflect.DeepEqual(got.Tasks, want) {
+		t.Fatalf("tasks = %#v, want %#v", got.Tasks, want)
+	}
+	if got.ScanPath != original.ScanPath {
+		t.Fatalf("scan path = %q, want %q", got.ScanPath, original.ScanPath)
+	}
+	updated, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(updated), "linux-cache-cleaner") {
+		t.Fatalf("migrated config still contains old task name: %s", updated)
 	}
 }
 

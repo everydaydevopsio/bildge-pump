@@ -85,6 +85,15 @@ func loadConfigWithDefaults(path string, allowMissing bool) (Config, error) {
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return cfg, fmt.Errorf("parse config %s: %w", path, err)
 	}
+	if normalizeConfiguredTasks(&cfg) {
+		updated, err := yaml.Marshal(&cfg)
+		if err != nil {
+			return cfg, fmt.Errorf("encode migrated config: %w", err)
+		}
+		if err := os.WriteFile(path, updated, 0o600); err != nil {
+			return cfg, fmt.Errorf("save migrated config %s: %w", path, err)
+		}
+	}
 	if cfg.ScanPath == "" {
 		cfg.ScanPath = defaultScanPath()
 	}
@@ -92,6 +101,22 @@ func loadConfigWithDefaults(path string, allowMissing bool) (Config, error) {
 		cfg.Tasks = []string{"dev-cache", "git-cleaner", platformCleaner()}
 	}
 	return cfg, nil
+}
+
+func normalizeConfiguredTasks(cfg *Config) bool {
+	legacyNames := map[string]string{
+		"mac-cache-cleaner":     "bilge-macos",
+		"linux-cache-cleaner":   "bilge-linux",
+		"windows-cache-cleaner": "bilge-windows",
+	}
+	changed := false
+	for i, task := range cfg.Tasks {
+		if normalized, ok := legacyNames[task]; ok {
+			cfg.Tasks[i] = normalized
+			changed = true
+		}
+	}
+	return changed
 }
 
 func writeConfig(path string, force bool) error {
