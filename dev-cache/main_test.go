@@ -3,10 +3,78 @@ package main
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestSafeCachePathFindsNestedRepositoryFromCachePath(t *testing.T) {
+	team := filepath.Join(t.TempDir(), "team")
+	repo := filepath.Join(team, "repo")
+	cache := filepath.Join(repo, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	allowed, reason := safeCachePath(Finding{Path: cache, ProjectRoot: team, Pattern: "node_modules"})
+	if !allowed {
+		t.Fatalf("safeCachePath rejected nested project cache: %s", reason)
+	}
+}
+
+func TestSafeCachePathRejectsNestedRepositoryInsideIgnoredCache(t *testing.T) {
+	repo := t.TempDir()
+	cache := filepath.Join(repo, "node_modules")
+	nested := filepath.Join(cache, "dependency")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", nested, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("nested git init: %v: %s", err, out)
+	}
+
+	allowed, reason := safeCachePath(Finding{Path: cache, Pattern: "node_modules"})
+	if allowed {
+		t.Fatal("safeCachePath allowed deletion of a cache containing a nested Git repository")
+	}
+	if !strings.Contains(reason, "nested Git repository") {
+		t.Fatalf("reason = %q, want nested Git repository explanation", reason)
+	}
+}
+
+func TestSafeCachePathRejectsGitfileAtCacheRoot(t *testing.T) {
+	repo := t.TempDir()
+	cache := filepath.Join(repo, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(cache, ".git"), []byte("gitdir: ../.git/worktrees/dependency\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	allowed, reason := safeCachePath(Finding{Path: cache, Pattern: "node_modules"})
+	if allowed || !strings.Contains(reason, "nested Git repository") {
+		t.Fatalf("safeCachePath = %v, %q; want reject nested Git gitfile", allowed, reason)
+	}
+}
 
 func TestCheckVersionFlag(t *testing.T) {
 	tests := []struct {
@@ -391,6 +459,24 @@ func TestWriteStarterConfig(t *testing.T) {
 	// With force should succeed
 	if err := writeStarterConfig(cfgPath, true); err != nil {
 		t.Fatalf("writeStarterConfig with force failed: %v", err)
+	}
+}
+
+func TestLoadConfigUsesDefaultsWhenDefaultConfigIsMissing(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg, err := loadConfigWithDefaults(defaultConfigPath(), true)
+	if err != nil {
+		t.Fatalf("loadConfig(default path) failed on a fresh install: %v", err)
+	}
+	if len(cfg.Languages) == 0 {
+		t.Fatal("default config has no languages")
+	}
+}
+
+func TestLoadConfigRejectsExplicitMissingDefaultPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if _, err := loadConfigWithDefaults(defaultConfigPath(), false); err == nil {
+		t.Fatal("explicit missing default config path should fail")
 	}
 }
 

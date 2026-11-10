@@ -1,8 +1,24 @@
 # Root Makefile - builds all applications
-.PHONY: all dev-cache git-cleaner mac-cache-cleaner clean test fmt lint vet build release-dry-run release-snapshot goreleaser-check check-tools help
+.PHONY: all dev-cache git-cleaner mac-cache-cleaner cache-cleaner linux-cache-cleaner windows-cache-cleaner clean test fmt lint vet build release-dry-run release-snapshot goreleaser-check check-tools help
+
+HOST_GOOS := $(shell go env GOOS)
+HOST_GOARCH := $(shell go env GOARCH)
+
+ifeq ($(HOST_GOOS),darwin)
+HOST_PLATFORM_CLEANER := mac-cache-cleaner
+HOST_BIN_SUFFIX :=
+else ifeq ($(HOST_GOOS),linux)
+HOST_PLATFORM_CLEANER := linux-cache-cleaner
+HOST_BIN_SUFFIX :=
+else ifeq ($(HOST_GOOS),windows)
+HOST_PLATFORM_CLEANER := windows-cache-cleaner
+HOST_BIN_SUFFIX := .exe
+else
+$(error Unsupported host OS: $(HOST_GOOS))
+endif
 
 # Default target - build all applications
-all: dev-cache git-cleaner mac-cache-cleaner
+all: dev-cache git-cleaner mac-cache-cleaner cache-cleaner linux-cache-cleaner windows-cache-cleaner
 
 # Help target
 help:
@@ -16,6 +32,9 @@ help:
 	@echo "  dev-cache           - Build dev-cache application"
 	@echo "  git-cleaner         - Build git-cleaner application"
 	@echo "  mac-cache-cleaner   - Build mac-cache-cleaner application"
+	@echo "  cache-cleaner       - Build unified cache-cleaner command"
+	@echo "  linux-cache-cleaner - Build Linux cleanup tool"
+	@echo "  windows-cache-cleaner - Build Windows cleanup tool"
 	@echo "  build               - Build all applications"
 	@echo ""
 	@echo "Quality targets:"
@@ -45,12 +64,33 @@ mac-cache-cleaner:
 	@echo "Building mac-cache-cleaner..."
 	@$(MAKE) -C mac-cache-cleaner all
 
+cache-cleaner:
+	@mkdir -p build
+	@cd dev-cache && go build -o ../build/dev-cache$(HOST_BIN_SUFFIX) .
+	@cd git-cleaner && go build -o ../build/git-cleaner$(HOST_BIN_SUFFIX) .
+ifeq ($(HOST_GOOS),darwin)
+	@cd mac-cache-cleaner && go build -o ../build/mac-cache-cleaner .
+else
+	@GOOS=$(HOST_GOOS) GOARCH=$(HOST_GOARCH) go build -o build/$(HOST_PLATFORM_CLEANER)$(HOST_BIN_SUFFIX) ./cmd/platform-cache-cleaner
+endif
+	@go build -o build/cache-cleaner$(HOST_BIN_SUFFIX) ./cmd/cache-cleaner
+
+linux-cache-cleaner:
+	@mkdir -p build/cross/linux/amd64
+	@GOOS=linux GOARCH=amd64 go build -o build/cross/linux/amd64/linux-cache-cleaner ./cmd/platform-cache-cleaner
+
+windows-cache-cleaner:
+	@mkdir -p build/cross/windows/amd64
+	@GOOS=windows GOARCH=amd64 go build -o build/cross/windows/amd64/windows-cache-cleaner.exe ./cmd/platform-cache-cleaner
+
 # Convenience targets that run in all directories
 test:
 	@echo "Running tests in all applications..."
 	@$(MAKE) -C dev-cache test
 	@$(MAKE) -C git-cleaner test
 	@$(MAKE) -C mac-cache-cleaner test
+	@go test ./cmd/...
+	@sh scripts/test-install.sh
 
 fmt:
 	@echo "Formatting all applications..."
@@ -75,12 +115,14 @@ build:
 	@$(MAKE) -C dev-cache build
 	@$(MAKE) -C git-cleaner build
 	@$(MAKE) -C mac-cache-cleaner build
+	@$(MAKE) cache-cleaner linux-cache-cleaner windows-cache-cleaner
 
 clean:
 	@echo "Cleaning all applications..."
 	@$(MAKE) -C dev-cache clean
 	@$(MAKE) -C git-cleaner clean
 	@$(MAKE) -C mac-cache-cleaner clean
+	@rm -rf build
 
 # Check required tools are installed
 check-tools:

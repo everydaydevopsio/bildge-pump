@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -299,6 +300,8 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunJSON(t *testing.T) {
+	oldJSON := *flagJSON
+	defer func() { *flagJSON = oldJSON }()
 	tmpDir := t.TempDir()
 	cfgPath := filepath.Join(tmpDir, "config.yaml")
 	// Minimal config with one fast target to avoid docker scan
@@ -332,6 +335,9 @@ func TestRunJSON(t *testing.T) {
 	}
 	if !bytes.Contains(out, []byte(`"dry_run"`)) {
 		t.Fatalf("expected JSON output, got: %s", out)
+	}
+	if !json.Valid(out) {
+		t.Fatalf("scan output is not valid JSON: %s", out)
 	}
 }
 
@@ -784,6 +790,24 @@ func TestExpandGlobsWithWildcards(t *testing.T) {
 	}
 	if len(paths) != 2 {
 		t.Fatalf("expandGlobs got %d paths, want 2: %v", len(paths), paths)
+	}
+}
+
+func TestLoadConfigUsesDefaultsWhenDefaultConfigIsMissing(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg, err := loadConfigWithDefaults(defaultConfigPath(), true)
+	if err != nil {
+		t.Fatalf("loadConfig(default path) failed on a fresh install: %v", err)
+	}
+	if cfg == nil || len(cfg.Targets) == 0 {
+		t.Fatal("default config has no targets")
+	}
+}
+
+func TestLoadConfigRejectsExplicitMissingDefaultPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if _, err := loadConfigWithDefaults(defaultConfigPath(), false); err == nil {
+		t.Fatal("explicit missing default config path should fail")
 	}
 }
 

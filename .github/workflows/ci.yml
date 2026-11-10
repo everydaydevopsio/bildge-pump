@@ -33,3 +33,63 @@ jobs:
     with:
       app_name: mac-cache-cleaner
       go_version: '1.22'
+
+  build-unified-cli:
+    name: Build unified CLI and platform cleaners
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go.sum
+      - name: Format check
+        run: |
+          test -z "$(gofmt -l cmd)"
+      - name: Test unified CLI and platform cleaners
+        run: go test ./cmd/...
+      - name: Cross-build unified and platform commands
+        run: |
+          set -eu
+          for os in darwin linux windows; do
+            for arch in amd64 arm64; do
+              GOOS="$os" GOARCH="$arch" go build -o /tmp/cache-cleaner ./cmd/cache-cleaner
+            done
+          done
+          for os in linux windows; do
+            for arch in amd64 arm64; do
+              GOOS="$os" GOARCH="$arch" go build -o /tmp/platform-cleaner ./cmd/platform-cache-cleaner
+            done
+          done
+
+  test-windows-batch-launcher:
+    name: Test Windows batch command arguments
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go.sum
+      - name: Test native batch argument handling
+        run: go test ./cmd/platform-cache-cleaner
+
+  test-macos-task-json:
+    name: Test macOS task JSON integration
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.22'
+          cache-dependency-path: go.sum
+      - name: Test structured macOS task output
+        run: go test ./cmd/cache-cleaner -run '^TestMacCleanerJSONIsStructured$'
+
+  test-unix-installer:
+    name: Test Unix installer selections
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test unified and standalone installs
+        run: sh scripts/test-install.sh
