@@ -148,7 +148,29 @@ esac
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT INT HUP TERM
 VERSION_NUMBER="${VERSION#v}"
-ARCHIVE_NAME="bilge-${VERSION_NUMBER}-${OS}-${ARCH}.tar.gz"
+VERSION_CORE="$(printf '%s\n' "$VERSION_NUMBER" | sed 's/[-+].*//')"
+VERSION_MAJOR="${VERSION_CORE%%.*}"
+VERSION_MINOR="${VERSION_CORE#*.}"
+VERSION_MINOR="${VERSION_MINOR%%.*}"
+ARCHIVE_PREFIX="cache-cleaner"
+if [ "$VERSION_MAJOR" -gt 2 ] || { [ "$VERSION_MAJOR" -eq 2 ] && [ "$VERSION_MINOR" -ge 1 ]; }; then
+  ARCHIVE_PREFIX="bilge"
+else
+  case "$PLATFORM_APP" in
+    bilge-macos) RELEASE_PLATFORM_APP=mac-cache-cleaner ;;
+    bilge-linux) RELEASE_PLATFORM_APP=linux-cache-cleaner ;;
+  esac
+  APPS="cache-cleaner dev-cache git-cleaner $RELEASE_PLATFORM_APP"
+  case "$APP_FILTER" in
+    bilge) APP_FILTER=cache-cleaner ;;
+    bilge-macos) APP_FILTER=mac-cache-cleaner ;;
+    bilge-linux) APP_FILTER=linux-cache-cleaner ;;
+  esac
+  if [ -n "$APP_FILTER" ] && [ "$APP_FILTER" != "cache-cleaner" ]; then
+    APPS="$APP_FILTER"
+  fi
+fi
+ARCHIVE_NAME="${ARCHIVE_PREFIX}-${VERSION_NUMBER}-${OS}-${ARCH}.tar.gz"
 DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/${ARCHIVE_NAME}"
 ARCHIVE_PATH="$TMP_DIR/$ARCHIVE_NAME"
 
