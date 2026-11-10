@@ -604,7 +604,7 @@ func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 				if err := yaml.Unmarshal(legacy, &cfg); err != nil {
 					return nil, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
 				}
-				if err := migrateConfigFile(path, legacy, 0o644); err != nil {
+				if err := migrateConfigFile(path, legacy, 0o600); err != nil {
 					fmt.Fprintf(os.Stderr, "warning: could not copy migrated config to %s: %v\n", path, err)
 				} else {
 					fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)

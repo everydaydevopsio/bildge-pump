@@ -841,8 +841,12 @@ func TestLoadConfigMigratesLegacyDefaultConfig(t *testing.T) {
 	if len(got.Targets) != 1 || got.Targets[0].Name != "docker" || got.Targets[0].Enabled {
 		t.Fatalf("migrated targets = %#v, want disabled docker target", got.Targets)
 	}
-	if _, err := os.Stat(defaultConfigPath()); err != nil {
+	info, err := os.Stat(defaultConfigPath())
+	if err != nil {
 		t.Fatalf("new config was not written: %v", err)
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		t.Fatalf("migrated config mode = %o, want owner-only permissions", info.Mode().Perm())
 	}
 }
 
