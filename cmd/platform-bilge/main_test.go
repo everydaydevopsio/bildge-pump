@@ -89,8 +89,17 @@ func TestLoadRequiresExplicitConfigWhenRequested(t *testing.T) {
 }
 
 func TestLoadMigratesLegacyDefaultConfig(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
 	legacyPath := legacyConfigPath()
+	newPath := configPath()
+	for _, path := range []string{legacyPath, newPath} {
+		rel, err := filepath.Rel(root, path)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			t.Fatalf("config path %q is outside temporary APPDATA %q", path, root)
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +119,7 @@ func TestLoadMigratesLegacyDefaultConfig(t *testing.T) {
 	if len(got.Targets) != 1 || got.Targets[0].Name != "docker" || got.Targets[0].Enabled {
 		t.Fatalf("migrated targets = %#v, want disabled docker target", got.Targets)
 	}
-	if _, err := os.Stat(configPath()); err != nil {
+	if _, err := os.Stat(newPath); err != nil {
 		t.Fatalf("new config was not written: %v", err)
 	}
 }

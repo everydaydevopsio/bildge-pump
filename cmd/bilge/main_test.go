@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"strings"
 	"testing"
 
 	yaml "gopkg.in/yaml.v3"
@@ -89,6 +88,9 @@ func TestLoadConfigMigratesRenamedPlatformTasks(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(path, 0o400); err != nil {
+		t.Fatal(err)
+	}
 
 	got, err := loadConfigWithDefaults(path, false)
 	if err != nil {
@@ -100,13 +102,6 @@ func TestLoadConfigMigratesRenamedPlatformTasks(t *testing.T) {
 	}
 	if got.ScanPath != original.ScanPath {
 		t.Fatalf("scan path = %q, want %q", got.ScanPath, original.ScanPath)
-	}
-	updated, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(updated), "linux-cache-cleaner") {
-		t.Fatalf("migrated config still contains old task name: %s", updated)
 	}
 }
 

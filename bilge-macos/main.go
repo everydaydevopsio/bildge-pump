@@ -557,13 +557,11 @@ func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 				if err := yaml.Unmarshal(legacy, &cfg); err != nil {
 					return nil, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
 				}
-				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-					return nil, fmt.Errorf("create config directory: %w", err)
+				if err := migrateConfigFile(path, legacy); err != nil {
+					fmt.Fprintf(os.Stderr, "warning: could not copy migrated config to %s: %v\n", path, err)
+				} else {
+					fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)
 				}
-				if err := os.WriteFile(path, legacy, 0o644); err != nil {
-					return nil, fmt.Errorf("migrate config to %s: %w", path, err)
-				}
-				fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)
 			} else if !os.IsNotExist(legacyErr) {
 				return nil, fmt.Errorf("read legacy config %s: %w", legacyPath, legacyErr)
 			} else {
@@ -596,6 +594,13 @@ func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 		cfg.Targets[i].Cmds = filtered
 	}
 	return &cfg, nil
+}
+
+func migrateConfigFile(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
 }
 
 func containsArg(args []string, want string) bool {

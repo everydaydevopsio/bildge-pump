@@ -85,15 +85,7 @@ func loadConfigWithDefaults(path string, allowMissing bool) (Config, error) {
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return cfg, fmt.Errorf("parse config %s: %w", path, err)
 	}
-	if normalizeConfiguredTasks(&cfg) {
-		updated, err := yaml.Marshal(&cfg)
-		if err != nil {
-			return cfg, fmt.Errorf("encode migrated config: %w", err)
-		}
-		if err := os.WriteFile(path, updated, 0o600); err != nil {
-			return cfg, fmt.Errorf("save migrated config %s: %w", path, err)
-		}
-	}
+	normalizeConfiguredTasks(&cfg)
 	if cfg.ScanPath == "" {
 		cfg.ScanPath = defaultScanPath()
 	}
