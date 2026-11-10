@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: |
             dev-cache/go.sum
             git-cleaner/go.sum
-            mac-cache-cleaner/go.sum
+            bilge-macos/go.sum
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7

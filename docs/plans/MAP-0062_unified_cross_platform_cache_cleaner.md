@@ -6,13 +6,13 @@ owner: Codex
 created: 2026-11-06
 mode: approval-required
 ---
-# MAP-0062 — Unified cross-platform cache-cleaner executable
+# MAP-0062 — Unified cross-platform bilge executable
 
 ## Context
-Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shared JSON and exit behavior, OS-aware execution, and git-cleaner configuration. The requested macOS/Linux/Windows support also depends on platform cleaner behavior described by #60 and #61. Existing apps are isolated Go modules with main packages, and only mac-cache-cleaner currently covers system-level cleanup.
+Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shared JSON and exit behavior, OS-aware execution, and git-cleaner configuration. The requested macOS/Linux/Windows support also depends on platform cleaner behavior described by #60 and #61. Existing apps are isolated Go modules with main packages, and only bilge-macos currently covers system-level cleanup.
 
 ## Scope
-- In scope: one unified cache-cleaner command backed by bundled task executables; full platform-appropriate scan/clean and task selection; macOS, Linux, and Windows builds; shared reports and exit codes; XDG-aware configuration and git-cleaner defaults; installation/release/CI/docs updates.
+- In scope: one unified bilge command backed by bundled task executables; full platform-appropriate scan/clean and task selection; macOS, Linux, and Windows builds; shared reports and exit codes; XDG-aware configuration and git-cleaner defaults; installation/release/CI/docs updates.
 - Out of scope: removing existing standalone tools; any cleanup action that lacks a safe, documented platform command; changing unrelated target policies.
 
 ## Constraints
@@ -48,7 +48,7 @@ Issues #62, #57, #59, and #66 call for one discoverable CLI, orchestration, shar
 - Regression coverage for explicitly named missing legacy default paths and native Windows batch arguments containing spaces and metacharacters.
 - Regression coverage for nested Git directories and gitfiles inside ignored cache candidates; native Windows tests reject percent signs in command paths and arguments.
 - Regression coverage for valid macOS JSON output; local build verification checks the launcher and host task executables share `build/`.
-- Installer smoke coverage verifies that `-a cache-cleaner` installs the complete current-platform bundle while standalone selection remains single-binary; cross-build targets use separate OS/architecture directories.
+- Installer smoke coverage verifies that `-a bilge` installs the complete current-platform bundle while standalone selection remains single-binary; cross-build targets use separate OS/architecture directories.
 - Platform inspection tests distinguish absent optional paths from traversal failures and ensure filesystem errors can reach the report's partial-failure path.
 - Target selection tests reject unknown-only, mixed-invalid, empty, and malformed `--targets` values before scan or cleanup dispatch.
 - CLI integration checks for dry-run, clean --all, named task execution, and missing/unsupported platform tools.

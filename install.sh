@@ -4,14 +4,14 @@ set -eu
 
 REPO_OWNER="everydaydevopsio"
 REPO_NAME="bilge-pump"
-CASK_NAME="cache-cleaner"
+CASK_NAME="bilge"
 
 # Available apps
-APPS="cache-cleaner dev-cache git-cleaner"
+APPS="bilge dev-cache git-cleaner"
 
 usage() {
   cat <<EOF
-Install cache-cleaner tools
+Install bilge tools
 
 RECOMMENDED: Use Homebrew instead of this script:
   brew tap ${REPO_OWNER}/${REPO_NAME}
@@ -22,7 +22,7 @@ Usage:
 
 Options:
   -b <bin_dir>   Install destination directory (REQUIRED)
-  -a <app>       Install one app: cache-cleaner, dev-cache, git-cleaner, or the platform cleaner
+  -a <app>       Install one app: bilge, dev-cache, git-cleaner, or the platform cleaner
                  (default: install the unified command and its platform tools)
 
 Arguments:
@@ -33,7 +33,7 @@ Examples:
   curl -sSfL https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/HEAD/install.sh | sh -s -- -b \$HOME/.local/bin
 
   # Install only the platform cleaner
-  curl -sSfL https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/HEAD/install.sh | sh -s -- -b \$HOME/.local/bin -a mac-cache-cleaner
+  curl -sSfL https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/HEAD/install.sh | sh -s -- -b \$HOME/.local/bin -a bilge-macos
 
   # Install specific version
   curl -sSfL https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/HEAD/install.sh | sh -s -- -b \$HOME/.local/bin v1.2.3
@@ -63,8 +63,8 @@ done
 # Determine OS/ARCH
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 case "$OS" in
-  darwin) PLATFORM_APP=mac-cache-cleaner ;;
-  linux) PLATFORM_APP=linux-cache-cleaner ;;
+  darwin) PLATFORM_APP=bilge-macos ;;
+  linux) PLATFORM_APP=bilge-linux ;;
   *) error "unsupported operating system: $OS (use the Windows release archive on Windows)" ;;
 esac
 APPS="$APPS $PLATFORM_APP"
@@ -72,13 +72,13 @@ APPS="$APPS $PLATFORM_APP"
 # Validate app filter if provided
 if [ -n "$APP_FILTER" ]; then
   case "$APP_FILTER" in
-    cache-cleaner|dev-cache|git-cleaner) : ;;
-    mac-cache-cleaner) [ "$OS" = "darwin" ] || error "mac-cache-cleaner is only available on macOS" ;;
-    linux-cache-cleaner) [ "$OS" = "linux" ] || error "linux-cache-cleaner is only available on Linux" ;;
+    bilge|dev-cache|git-cleaner) : ;;
+    bilge-macos) [ "$OS" = "darwin" ] || error "bilge-macos is only available on macOS" ;;
+    bilge-linux) [ "$OS" = "linux" ] || error "bilge-linux is only available on Linux" ;;
     *) error "invalid app: $APP_FILTER" ;;
   esac
-  if [ "$APP_FILTER" = "cache-cleaner" ]; then
-    APPS="cache-cleaner dev-cache git-cleaner $PLATFORM_APP"
+  if [ "$APP_FILTER" = "bilge" ]; then
+    APPS="bilge dev-cache git-cleaner $PLATFORM_APP"
   else
     APPS="$APP_FILTER"
   fi
@@ -148,7 +148,7 @@ esac
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT INT HUP TERM
 VERSION_NUMBER="${VERSION#v}"
-ARCHIVE_NAME="cache-cleaner-${VERSION_NUMBER}-${OS}-${ARCH}.tar.gz"
+ARCHIVE_NAME="bilge-${VERSION_NUMBER}-${OS}-${ARCH}.tar.gz"
 DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/${ARCHIVE_NAME}"
 ARCHIVE_PATH="$TMP_DIR/$ARCHIVE_NAME"
 

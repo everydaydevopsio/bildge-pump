@@ -78,9 +78,9 @@ func addTargetToReport(report *Report, target Target) {
 
 func cleanerName() string {
 	if runtime.GOOS == "windows" {
-		return "windows-cache-cleaner"
+		return "bilge-windows"
 	}
-	return "linux-cache-cleaner"
+	return "bilge-linux"
 }
 func configPath() string {
 	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" && filepath.IsAbs(x) && runtime.GOOS != "windows" {

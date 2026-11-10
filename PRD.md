@@ -1,7 +1,7 @@
-# Product Requirements Document (PRD): cache-cleaner
+# Product Requirements Document (PRD): bilge
 
 ## Overview
-The cache-cleaner project consists of three cross-platform Go CLI tools designed to help developers reclaim disk space by identifying and cleaning various types of cache directories and developer cruft. Each tool serves a specific purpose and can be used independently or together.
+Bilge is a cross-platform Go toolkit for reclaiming disk space by identifying and cleaning developer caches and repository metadata. The unified command and Homebrew cask are both named `bilge`; the macOS, Linux, and Windows platform tasks are `bilge-macos`, `bilge-linux`, and `bilge-windows`.
 
 ## Project Goals
 - Safety first (no direct deletions where possible, use official tool commands)
@@ -11,22 +11,23 @@ The cache-cleaner project consists of three cross-platform Go CLI tools designed
 - Transparent size reporting
 - Selective filtering for targeted operations
 - JSON output for automation/CI integration
-- A single `cache-cleaner` executable that runs the full platform-appropriate cleanup or selected cleanup tasks
+- A single `bilge` executable that runs the full platform-appropriate cleanup or selected cleanup tasks
+- The public command, release archive prefix, installer selection, and Homebrew cask use the name `bilge` beginning with v2.1.0.
 - Configuration stored under the XDG Base Directory Specification on Unix-like systems, honoring `XDG_CONFIG_HOME`
 
-## Unified `cache-cleaner` CLI
+## Unified `bilge` CLI
 
 ### Overview
-Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The release bundles its task executables in the same install directory; users invoke `cache-cleaner` for `scan`, `clean`, and named-tool commands. The command locates bundled tools beside itself, and does not require users to install Go or put each tool on `PATH`.
+Ship one unified `bilge` command for macOS, Linux, and Windows. The release bundles its task executables in the same install directory; users invoke `bilge` for `scan`, `clean`, and named-tool commands. The command locates bundled tools beside itself, and does not require users to install Go or put each tool on `PATH`.
 
 ### Configuration
 - The unified config is stored at `$XDG_CONFIG_HOME/bilge-pump/config.yaml` when `XDG_CONFIG_HOME` is set; otherwise use the platform user config directory (`~/.config/bilge-pump/config.yaml` on Unix and the OS config directory on Windows).
 - `--config` overrides the default path.
 - Existing tool configs remain readable at their XDG-aware per-tool paths, and `git-cleaner` gains config support for its default scan path.
 - A first run works with built-in sensible defaults; `--init` writes a customizable config.
-- A local `make cache-cleaner` build places the launcher and all host-platform task executables together under `build/`.
+- A local `make bilge` build places the launcher and all host-platform task executables together under `build/`.
 - Cross-build cleaner targets write into OS/architecture-specific subdirectories and do not overwrite the native bundle under `build/`.
-- Selecting `cache-cleaner` in `install.sh` installs the launcher and all task executables it needs; selecting a standalone cleaner still installs only that tool.
+- Selecting `bilge` in `install.sh` installs the launcher and all task executables it needs; selecting a standalone cleaner still installs only that tool.
 - Legacy component executables use their built-in starter config when their default XDG/platform config is absent; an explicitly supplied missing `--config` path remains an error.
 - Explicit missing component configs remain errors even when the supplied path happens to equal that tool's default config path.
 - The unified CLI consumes orchestration flags itself, routes `--yes` only to project cache cleanup, and rejects task-specific arguments that are invalid for any selected task before starting a clean operation.
@@ -36,11 +37,11 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 - Windows release archives are ZIP files matching `install.ps1`; macOS and Linux retain tar.gz archives.
 
 ### CLI and behavior
-- `cache-cleaner scan` reports findings across tasks without changing files.
-- `cache-cleaner clean --all` runs platform-appropriate cleanup tasks; `cache-cleaner clean <task>` or `cache-cleaner <task>` selects one task.
+- `bilge scan` reports findings across tasks without changing files.
+- `bilge clean --all` runs platform-appropriate cleanup tasks; `bilge clean <task>` or `bilge <task>` selects one task.
 - Individual legacy tools remain available for compatibility.
 - One shared JSON report schema and exit-code convention apply to unified orchestration.
-- `cache-cleaner scan --json` emits a valid JSON envelope with each selected task's structured report; task progress stays on stderr.
+- `bilge scan --json` emits a valid JSON envelope with each selected task's structured report; task progress stays on stderr.
 - Platform builds cover macOS, Linux, and Windows (amd64 and arm64 where supported).
 - Windows batch-based cleanup commands preserve executable paths and argument boundaries containing spaces and shell metacharacters; values containing percent signs are rejected because `cmd.exe` expands them before batch execution.
 - Cleanup remains dry-run by default; destructive tasks require explicit `clean` intent and task-level safety controls.
@@ -54,7 +55,7 @@ Ship one unified `cache-cleaner` command for macOS, Linux, and Windows. The rele
 
 ---
 
-## mac-cache-cleaner
+## bilge-macos
 
 ### Overview
 A safe, config-driven Go CLI for macOS that frees disk space using **official tool commands** (Docker, npm/yarn/pnpm, Go, Maven, Brew, and many more) instead of deleting files directly.
@@ -71,9 +72,9 @@ A safe, config-driven Go CLI for macOS that frees disk space using **official to
 ### Key Features
 
 #### CLI Flags
-- `--init` writes starter config to `~/.config/mac-cache-cleaner/config.yaml`
+- `--init` writes starter config to `~/.config/bilge-macos/config.yaml`
 - `--force` forces overwrite of existing config when used with `--init`
-- `--config` specifies path to YAML config (defaults to `~/.config/mac-cache-cleaner/config.yaml`)
+- `--config` specifies path to YAML config (defaults to `~/.config/bilge-macos/config.yaml`)
 - `--clean` executes cleanup commands (default: dry-run mode)
 - `--targets` filters targets to scan/clean (comma-separated or "all")
 - `--details` shows detailed per-directory information
@@ -409,7 +410,7 @@ All three apps support:
 | `all` | Build all applications (default) |
 | `dev-cache` | Build dev-cache application only |
 | `git-cleaner` | Build git-cleaner application only |
-| `mac-cache-cleaner` | Build mac-cache-cleaner application only |
+| `bilge-macos` | Build bilge-macos application only |
 | `build` | Build all applications |
 | `test` | Run tests in all applications |
 | `fmt` | Format code in all applications |
@@ -433,8 +434,8 @@ make release-snapshot
 
 # Artifacts will be in ./dist/
 # - Individual binaries: dev-cache-darwin-amd64, etc.
-# - Homebrew tarball: cache-cleaner-VERSION-darwin-{amd64,arm64}.tar.gz
-# - Homebrew cask: dist/homebrew/Casks/cache-cleaner.rb
+# - Homebrew tarball: bilge-VERSION-darwin-{amd64,arm64}.tar.gz
+# - Homebrew cask: dist/homebrew/Casks/bilge.rb
 ```
 
 ### Creating a Release
@@ -469,26 +470,26 @@ make release-snapshot
    - Check Homebrew cask: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
    - Trust and test installation:
      ```bash
-     brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-     brew upgrade --cask cache-cleaner
+     brew trust --cask everydaydevopsio/bilge-pump/bilge
+     brew upgrade --cask bilge
      ```
 
 ### Troubleshooting Releases
 
 **Cask not found after release:**
 
-If `brew install cache-cleaner` fails with "No available cask":
+If `brew install bilge` fails with "No available cask":
 
 1. Check that the cask was pushed to the tap:
    - Visit: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
-   - You should see `cache-cleaner.rb`
+   - You should see `bilge.rb`
 
 2. Update Homebrew and retry:
    ```bash
    brew update
    brew tap everydaydevopsio/bilge-pump
-   brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-   brew install --cask cache-cleaner
+   brew trust --cask everydaydevopsio/bilge-pump/bilge
+   brew install --cask bilge
    ```
 
 **Token errors in GitHub Actions:**
@@ -527,7 +528,7 @@ The project uses GoReleaser for automated releases with the following configurat
 
 **Archives:**
 - Individual binaries for direct download (format: `{app}-darwin-{arch}`)
-- Combined tarball for Homebrew (format: `cache-cleaner-{version}-darwin-{arch}.tar.gz`)
+- Combined tarball for Homebrew (format: `bilge-{version}-darwin-{arch}.tar.gz`)
 - The tarball includes all three binaries
 
 **Homebrew Integration:**
@@ -546,8 +547,8 @@ The project uses GoReleaser for automated releases with the following configurat
 **Primary: Homebrew (Recommended)**
 ```bash
 brew tap everydaydevopsio/bilge-pump
-brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-brew install --cask cache-cleaner
+brew trust --cask everydaydevopsio/bilge-pump/bilge
+brew install --cask bilge
 ```
 Run the trust command before installing or upgrading this third-party cask.
 
@@ -581,7 +582,7 @@ To enable automated Homebrew releases:
 1. **Create tap repository:**
    - Go to: https://github.com/new
    - Repository name: `homebrew-bilge-pump` (must start with `homebrew-`)
-   - Description: "Homebrew tap for cache-cleaner tools"
+   - Description: "Homebrew tap for bilge tools"
    - Visibility: Public
    - Initialize with README
    - After creation, clone and create `Casks/` directory:
@@ -601,7 +602,7 @@ To enable automated Homebrew releases:
    - Scopes: Select `public_repo` (allows read/write to public repositories)
    - Click "Generate token"
    - **IMPORTANT**: Copy the token immediately (you won't see it again)
-   - Add as repository secret in the cache-cleaner repository:
+   - Add as repository secret in the bilge repository:
      - Go to: https://github.com/everydaydevopsio/bilge-pump/settings/secrets/actions
      - Click "New repository secret"
      - Name: `HOMEBREW_TAP_GITHUB_TOKEN`
@@ -617,24 +618,24 @@ To enable automated Homebrew releases:
    ```bash
    # Add the tap and install
    brew tap everydaydevopsio/bilge-pump
-   brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-   brew install --cask cache-cleaner --verbose
+   brew trust --cask everydaydevopsio/bilge-pump/bilge
+   brew install --cask bilge --verbose
 
    # Verify all binaries are installed
    which dev-cache
    which git-cleaner
-   which mac-cache-cleaner
+   which bilge-macos
 
    # Test functionality
    dev-cache --version
    git-cleaner --version
-   mac-cache-cleaner --version
+   bilge-macos --version
 
    # Audit the cask
-   brew audit --strict --online cache-cleaner
+   brew audit --strict --online bilge
 
    # Test uninstall (optional)
-   brew uninstall cache-cleaner
+   brew uninstall bilge
    brew untap everydaydevopsio/bilge-pump
    ```
 
@@ -647,6 +648,6 @@ Once the cask is stable and has users, the project can be submitted to homebrew-
 3. Submit a PR to [Homebrew/homebrew-core](https://github.com/Homebrew/homebrew-core)
 4. After acceptance, users can install with just:
    ```bash
-   brew install cache-cleaner
+   brew install bilge
    ```
    (no tap required)

@@ -109,7 +109,7 @@ func TestExpandHome(t *testing.T) {
 
 func TestDefaultConfigPath(t *testing.T) {
 	p := defaultConfigPath()
-	if !strings.HasSuffix(p, filepath.Join(".config", "mac-cache-cleaner", "config.yaml")) {
+	if !strings.HasSuffix(p, filepath.Join(".config", "bilge-macos", "config.yaml")) {
 		t.Fatalf("defaultConfigPath() unexpected: %q", p)
 	}
 }
@@ -177,7 +177,7 @@ func TestCheckToolCheckPathWithTilde(t *testing.T) {
 		t.Skip("no home dir")
 	}
 	// Use a path that doesn't exist
-	tool := Tool{Name: "dummy", CheckPath: "~/.cache-cleaner-test-nonexistent-xyz"}
+	tool := Tool{Name: "dummy", CheckPath: "~/.bilge-test-nonexistent-xyz"}
 	installed, _, _ := checkTool(tool)
 	if installed {
 		t.Fatal("expected not installed for nonexistent path")
@@ -281,7 +281,7 @@ func TestMain_noArgs_summaryOnly(t *testing.T) {
 func TestRunVersion(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
-	os.Args = []string{"mac-cache-cleaner", "--version"}
+	os.Args = []string{"bilge-macos", "--version"}
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
@@ -320,7 +320,7 @@ func TestRunJSON(t *testing.T) {
 
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
-	os.Args = []string{"mac-cache-cleaner", "--config", cfgPath, "--json", "--targets", "test"}
+	os.Args = []string{"bilge-macos", "--config", cfgPath, "--json", "--targets", "test"}
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()

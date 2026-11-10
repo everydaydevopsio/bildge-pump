@@ -127,18 +127,18 @@ type Report struct {
 
 func defaultConfigPath() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" && filepath.IsAbs(xdg) && runtime.GOOS != "windows" {
-		return filepath.Join(xdg, "mac-cache-cleaner", "config.yaml")
+		return filepath.Join(xdg, "bilge-macos", "config.yaml")
 	}
 	if runtime.GOOS == "windows" {
 		if dir, err := os.UserConfigDir(); err == nil && dir != "" {
-			return filepath.Join(dir, "mac-cache-cleaner", "config.yaml")
+			return filepath.Join(dir, "bilge-macos", "config.yaml")
 		}
 	}
 	h, _ := os.UserHomeDir()
 	if h == "" {
 		return "./config.yaml"
 	}
-	return filepath.Join(h, ".config", "mac-cache-cleaner", "config.yaml")
+	return filepath.Join(h, ".config", "bilge-macos", "config.yaml")
 }
 
 func ensureDir(p string) error { return os.MkdirAll(filepath.Dir(p), 0o755) }

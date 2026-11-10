@@ -1,4 +1,4 @@
-# cache-cleaner
+# bilge
 
 [![CI](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/ci.yml/badge.svg)](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/ci.yml)
 [![Release](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/release.yml/badge.svg)](https://github.com/everydaydevopsio/bilge-pump/actions/workflows/release.yml)
@@ -6,46 +6,25 @@
 [![License](https://img.shields.io/github/license/everydaydevopsio/bilge-pump)](LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/everydaydevopsio/bilge-pump)](https://github.com/everydaydevopsio/bilge-pump/releases)
 
-A cross-platform Go cleanup toolkit with a unified `cache-cleaner` command for macOS, Linux, and Windows.
+A cross-platform Go cleanup toolkit with a unified `bilge` command for macOS, Linux, and Windows.
 
-## Repository move
-
-This project has moved from [`markcallen/cache-cleaner`](https://github.com/markcallen/cache-cleaner) to [`everydaydevopsio/bilge-pump`](https://github.com/everydaydevopsio/bilge-pump). The Homebrew tap moved from `markcallen/homebrew-cache-cleaner` to [`everydaydevopsio/homebrew-bilge-pump`](https://github.com/everydaydevopsio/homebrew-bilge-pump).
-
-Update an existing Git checkout with:
-
-```bash
-git remote set-url origin git@github.com:everydaydevopsio/bilge-pump.git
-git fetch origin
-git pull --ff-only
-```
-
-To move an existing Homebrew installation to the new tap:
-
-```bash
-brew untap markcallen/cache-cleaner
-brew tap everydaydevopsio/bilge-pump
-brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-brew reinstall --cask cache-cleaner
-```
-
-For a new Homebrew installation, tap the repository, trust its cask, and install:
+Install with Homebrew by tapping the repository, trusting its cask, and installing:
 
 ```bash
 brew tap everydaydevopsio/bilge-pump
-brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-brew install --cask cache-cleaner
+brew trust --cask everydaydevopsio/bilge-pump/bilge
+brew install --cask bilge
 ```
 
 ## Apps
 
-### cache-cleaner
-Unified entry point for scanning or cleaning project caches, Git repositories, and the current OS's developer caches. Run `cache-cleaner scan` for a dry run, `cache-cleaner clean --all` to run the configured cleanup tasks, or select one task with `cache-cleaner clean dev-cache` / `cache-cleaner clean git-cleaner`. Add `--yes` to skip the project-cache confirmation prompt; the unified command sends it only to `dev-cache`.
+### bilge
+Unified entry point for scanning or cleaning project caches, Git repositories, and the current OS's developer caches. Run `bilge scan` for a dry run, `bilge clean --all` to run the configured cleanup tasks, or select one task with `bilge clean dev-cache` / `bilge clean git-cleaner`. Add `--yes` to skip the project-cache confirmation prompt; the unified command sends it only to `dev-cache`.
 
 The release installs the unified command alongside its task executables in one directory. The unified command locates those executables beside itself, so users run one command without adding each tool to `PATH`.
 
-### mac-cache-cleaner
-macOS cache cleaner that runs **safe, official cleanup commands** for developer tools (Docker, npm, Homebrew, etc.), never `rm -rf`.
+### bilge-macos
+`bilge-macos` runs **safe, official cleanup commands** for developer tools (Docker, npm, Homebrew, etc.), never `rm -rf`.
 
 ### dev-cache
 Cross-platform tool that scans source directories for project cache directories (like `node_modules`, `.venv`, `target`, etc.) across multiple languages.
@@ -53,8 +32,8 @@ Cross-platform tool that scans source directories for project cache directories 
 ### git-cleaner
 Cross-platform tool that finds `.git` directories, reports their sizes, and optionally optimizes repositories with `git gc`.
 
-### linux-cache-cleaner and windows-cache-cleaner
-Platform-specific developer cache cleaners for Linux and native Windows. Both support dry-run, `--clean`, `--targets`, `--json`, `--init`, and `--config`.
+### bilge-linux and bilge-windows
+`bilge-linux` and `bilge-windows` provide platform-specific developer cleanup for Linux and native Windows. Both support dry-run, `--clean`, `--targets`, `--json`, `--init`, and `--config`.
 
 ## Install
 
@@ -62,13 +41,13 @@ Platform-specific developer cache cleaners for Linux and native Windows. Both su
 
 ```bash
 brew tap everydaydevopsio/bilge-pump
-brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-brew install --cask cache-cleaner
+brew trust --cask everydaydevopsio/bilge-pump/bilge
+brew install --cask bilge
 ```
 
 Run the trust command before installing or upgrading this third-party cask.
 
-This installs `cache-cleaner`, `dev-cache`, `git-cleaner`, and the macOS platform cleaner.
+This installs `bilge`, `dev-cache`, `git-cleaner`, and the macOS platform cleaner.
 
 ### Linux
 
@@ -84,9 +63,9 @@ Download and run [`install.ps1`](install.ps1) from PowerShell:
 .\install.ps1
 ```
 
-It installs the Windows executables under `%LOCALAPPDATA%\Programs\cache-cleaner`. Add that directory to your user `PATH`.
+It installs the Windows executables under `%LOCALAPPDATA%\Programs\bilge`. Add that directory to your user `PATH`.
 
-The release includes the unified command plus the platform tasks in the same directory. Run `cache-cleaner --init` once to create the editable unified config; platform cleaner configs can be initialized with `linux-cache-cleaner --init` or `windows-cache-cleaner --init`.
+The release includes the unified command plus the platform tasks in the same directory. Run `bilge --init` once to create the editable unified config; platform cleaner configs can be initialized with `bilge-linux --init` or `bilge-windows --init`.
 
 ### Alternative: Direct Download
 
@@ -97,7 +76,7 @@ If you don't have Homebrew, you can use the install script:
 curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bilge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin
 
 # Install a specific app only
-curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bilge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin -a mac-cache-cleaner
+curl -sSfL https://raw.githubusercontent.com/everydaydevopsio/bilge-pump/HEAD/install.sh | sh -s -- -b $HOME/.local/bin -a bilge-macos
 ```
 
 **Important**: The install script requires the `-b` flag to specify an installation directory. If you omit the `-b` flag, the script will error out and recommend using Homebrew instead.
@@ -113,30 +92,30 @@ Add this to your shell profile (`~/.zshrc` or `~/.bashrc`) to make it permanent.
 
 - The script installs from the latest GitHub release archives.
 - `-b <dir>` is mandatory and determines where binaries are written.
-- Use `-a cache-cleaner` to install the unified launcher with `dev-cache`, `git-cleaner`, and the current OS platform cleaner. Use `-a <standalone-app>` to install only that standalone tool; omit `-a` to install the complete toolkit.
+- Use `-a bilge` to install the unified launcher with `dev-cache`, `git-cleaner`, and the current OS platform cleaner. Use `-a <standalone-app>` to install only that standalone tool; omit `-a` to install the complete toolkit.
 - The script exits early with an error (without partial installs) if required flags or tools are missing.
 
 ## Quick Start
 
 ### Unified command
 ```bash
-cache-cleaner --init                # create a starter config
-cache-cleaner scan                  # dry-run all configured tasks
-cache-cleaner clean --all           # run all configured cleanup tasks
-cache-cleaner clean --all --yes     # skip project-cache confirmation
-cache-cleaner clean dev-cache       # run one cleanup task
-cache-cleaner --json scan           # shared JSON envelope
+bilge --init                # create a starter config
+bilge scan                  # dry-run all configured tasks
+bilge clean --all           # run all configured cleanup tasks
+bilge clean --all --yes     # skip project-cache confirmation
+bilge clean dev-cache       # run one cleanup task
+bilge --json scan           # shared JSON envelope
 ```
 
 The unified config lives at `$XDG_CONFIG_HOME/bilge-pump/config.yaml` when `XDG_CONFIG_HOME` is set, otherwise under `~/.config/bilge-pump/` on macOS/Linux or the Windows user config directory. It selects a default scan path and task list. Each task can also be configured with its standalone tool's config file. The platform cleaner YAML exposes target `enabled`, `paths`, and `cmds` entries. `git-cleaner --init` creates its own config and supports `--config` and `--scan` overrides.
 
-### mac-cache-cleaner
+### bilge-macos
 ```bash
-mac-cache-cleaner --init
-mac-cache-cleaner                    # dry-run (summary)
-mac-cache-cleaner --details          # show per-directory details
-mac-cache-cleaner --clean            # execute cleanup
-mac-cache-cleaner --targets brew,npm --clean
+bilge-macos --init
+bilge-macos                    # dry-run (summary)
+bilge-macos --details          # show per-directory details
+bilge-macos --clean            # execute cleanup
+bilge-macos --targets brew,npm --clean
 ```
 
 ### dev-cache
@@ -159,14 +138,14 @@ Project-cache deletion skips paths that are not Git-ignored or contain tracked f
 
 ### Cask not found
 
-If `brew install cache-cleaner` fails with "No available cask":
+If `brew install bilge` fails with "No available cask":
 
 1. Update Homebrew and retry:
    ```bash
    brew update
    brew tap everydaydevopsio/bilge-pump
-   brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-   brew install --cask cache-cleaner
+   brew trust --cask everydaydevopsio/bilge-pump/bilge
+   brew install --cask bilge
    ```
 
 2. Verify the cask exists at: https://github.com/everydaydevopsio/homebrew-bilge-pump/tree/main/Casks
@@ -183,7 +162,7 @@ If you encounter issues during installation:
 
 2. Try installing with verbose output to see detailed logs:
    ```bash
-   brew install cache-cleaner --verbose
+   brew install bilge --verbose
    ```
 
 3. If problems persist, check the [GitHub Issues](https://github.com/everydaydevopsio/bilge-pump/issues)
@@ -191,7 +170,7 @@ If you encounter issues during installation:
 ## Documentation
 
 Each app has detailed documentation in its own directory:
-- [`mac-cache-cleaner/README.md`](mac-cache-cleaner/README.md) - Full mac-cache-cleaner docs
+- [`bilge-macos/README.md`](bilge-macos/README.md) - Full bilge-macos docs
 - [`dev-cache/README.md`](dev-cache/README.md) - Full dev-cache docs
 - [`git-cleaner/README.md`](git-cleaner/README.md) - Full git-cleaner docs
 
@@ -222,7 +201,7 @@ Build specific app:
 ```bash
 make dev-cache
 make git-cleaner
-make mac-cache-cleaner
+make bilge-macos
 ```
 
 Run tests/lint for all:
@@ -286,24 +265,24 @@ After creating your first release, verify the installation works correctly:
 ```bash
 # Add the tap and install
 brew tap everydaydevopsio/bilge-pump
-brew trust --cask everydaydevopsio/bilge-pump/cache-cleaner
-brew install --cask cache-cleaner --verbose
+brew trust --cask everydaydevopsio/bilge-pump/bilge
+brew install --cask bilge --verbose
 
 # Verify all binaries are installed
 which dev-cache
 which git-cleaner
-which mac-cache-cleaner
+which bilge-macos
 
 # Test functionality
 dev-cache --version
 git-cleaner --version
-mac-cache-cleaner --version
+bilge-macos --version
 
 # Audit the cask
-brew audit --strict --online cache-cleaner
+brew audit --strict --online bilge
 
 # Test uninstall (optional)
-brew uninstall --cask cache-cleaner
+brew uninstall --cask bilge
 brew untap everydaydevopsio/bilge-pump
 ```
 
@@ -321,7 +300,7 @@ For each tagged release:
    ```bash
    ./dev-cache-darwin-arm64 --help
    ```
-4. Repeat for `git-cleaner` and `mac-cache-cleaner` (the latter requires macOS).
+4. Repeat for `git-cleaner` and `bilge-macos` (the latter requires macOS).
 
 ## Questions?
 

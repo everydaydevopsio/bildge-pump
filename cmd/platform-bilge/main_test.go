@@ -90,7 +90,7 @@ func TestWindowsBatchLauncherPreservesExecutableAndArgumentBoundaries(t *testing
 	if runtime.GOOS != "windows" {
 		t.Skip("native Windows batch invocation test")
 	}
-	t.Setenv("TEMP", `C:\cache-cleaner-expanded`)
+	t.Setenv("TEMP", `C:\bilge-expanded`)
 	executable := filepath.Join(t.TempDir(), "tool with spaces.cmd")
 	if err := os.WriteFile(executable, []byte("@echo off\r\necho %*\r\n"), 0o600); err != nil {
 		t.Fatal(err)

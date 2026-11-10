@@ -41,14 +41,14 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$destination" ] || exit 1
 mkdir -p "$destination"
-for app in cache-cleaner dev-cache git-cleaner linux-cache-cleaner; do
+for app in bilge dev-cache git-cleaner bilge-linux; do
   : > "$destination/$app"
 done
 EOF
 
 chmod +x "$MOCK_BIN/uname" "$MOCK_BIN/curl" "$MOCK_BIN/tar"
-PATH="$MOCK_BIN:$PATH" "$ROOT_DIR/install.sh" -b "$TEST_DIR/unified-bin" -a cache-cleaner v1.2.3 >/dev/null
-for app in cache-cleaner dev-cache git-cleaner linux-cache-cleaner; do
+PATH="$MOCK_BIN:$PATH" "$ROOT_DIR/install.sh" -b "$TEST_DIR/unified-bin" -a bilge v1.2.3 >/dev/null
+for app in bilge dev-cache git-cleaner bilge-linux; do
   [ -x "$TEST_DIR/unified-bin/$app" ] || {
     echo "unified installer did not install $app" >&2
     exit 1
@@ -60,7 +60,7 @@ PATH="$MOCK_BIN:$PATH" "$ROOT_DIR/install.sh" -b "$TEST_DIR/standalone-bin" -a d
   echo "standalone installer did not install dev-cache" >&2
   exit 1
 }
-[ ! -e "$TEST_DIR/standalone-bin/cache-cleaner" ] || {
+[ ! -e "$TEST_DIR/standalone-bin/bilge" ] || {
   echo "standalone selection unexpectedly installed the unified launcher" >&2
   exit 1
 }
