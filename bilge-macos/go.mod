@@ -1,4 +1,4 @@
-module mac-cache-cleaner
+module bilge-macos
 
 go 1.21
 

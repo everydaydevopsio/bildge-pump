@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	version             = "dev"
+	commit              = "none"
+	date                = "unknown"
+	createMigrationTemp = os.CreateTemp
 )
 
 type Target struct {
@@ -78,20 +79,46 @@ func addTargetToReport(report *Report, target Target) {
 
 func cleanerName() string {
 	if runtime.GOOS == "windows" {
-		return "windows-cache-cleaner"
+		return "bilge-windows"
 	}
-	return "linux-cache-cleaner"
+	return "bilge-linux"
 }
 func configPath() string {
+	return filepath.Join(configRoot(), cleanerName(), "config.yaml")
+}
+func configRoot() string {
 	if x := os.Getenv("XDG_CONFIG_HOME"); x != "" && filepath.IsAbs(x) && runtime.GOOS != "windows" {
-		return filepath.Join(x, cleanerName(), "config.yaml")
+		return x
 	}
 	d, err := os.UserConfigDir()
 	if err != nil || d == "" {
 		h, _ := os.UserHomeDir()
 		d = filepath.Join(h, ".config")
 	}
-	return filepath.Join(d, cleanerName(), "config.yaml")
+	return d
+}
+func legacyConfigPath() string {
+	name := "linux-cache-cleaner"
+	if runtime.GOOS == "windows" {
+		name = "windows-cache-cleaner"
+	}
+	return filepath.Join(configRoot(), name, "config.yaml")
+}
+func rejectLegacyConfigInit(path string, force bool) error {
+	if force || filepath.Clean(path) != filepath.Clean(configPath()) {
+		return nil
+	}
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if _, err := os.Stat(legacyConfigPath()); err == nil {
+		return fmt.Errorf("existing configuration found at %s; run a normal command to migrate it, or use --force to replace it", legacyConfigPath())
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 func defaultTargets() []Target {
 	home, _ := os.UserHomeDir()
@@ -124,6 +151,23 @@ func load(path string, allowMissing bool) (Config, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		if allowMissing {
+			if filepath.Clean(path) == filepath.Clean(configPath()) {
+				legacyPath := legacyConfigPath()
+				if legacy, legacyErr := os.ReadFile(legacyPath); legacyErr == nil {
+					if err := yaml.Unmarshal(legacy, &cfg); err != nil {
+						return cfg, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
+					}
+					cfg = withDefaultTargets(cfg)
+					if err := migrateConfigFile(path, legacy); err != nil {
+						fmt.Fprintf(os.Stderr, "warning: could not copy migrated config to %s: %v\n", path, err)
+					} else {
+						fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)
+					}
+					return cfg, nil
+				} else if !errors.Is(legacyErr, os.ErrNotExist) {
+					return cfg, fmt.Errorf("read legacy config %s: %w", legacyPath, legacyErr)
+				}
+			}
 			return cfg, nil
 		}
 		return cfg, fmt.Errorf("config file %s does not exist", path)
@@ -134,10 +178,44 @@ func load(path string, allowMissing bool) (Config, error) {
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return cfg, err
 	}
+	cfg = withDefaultTargets(cfg)
+	return cfg, nil
+}
+
+func withDefaultTargets(cfg Config) Config {
 	if len(cfg.Targets) == 0 {
 		cfg.Targets = defaultTargets()
 	}
-	return cfg, nil
+	return cfg
+}
+
+func migrateConfigFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	tmp, err := createMigrationTemp(dir, ".bilge-config-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Link(tmpPath, path)
 }
 
 func selectTargets(selection string, cfg Config) (map[string]bool, error) {
@@ -246,6 +324,10 @@ func run() int {
 		}
 	})
 	if *init {
+		if err := rejectLegacyConfigInit(*config, *force); err != nil {
+			fmt.Fprintln(os.Stderr, "config error:", err)
+			return 1
+		}
 		if _, err := os.Stat(*config); err == nil {
 			if !*force {
 				fmt.Fprintln(os.Stderr, "config exists; use --force to overwrite")

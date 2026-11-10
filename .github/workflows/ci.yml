@@ -27,11 +27,11 @@ jobs:
       app_name: git-cleaner
       go_version: '1.22'
 
-  build-mac-cache-cleaner:
-    name: Build mac-cache-cleaner
+  build-bilge-macos:
+    name: Build bilge-macos
     uses: ./.github/workflows/build-app.yml
     with:
-      app_name: mac-cache-cleaner
+      app_name: bilge-macos
       go_version: '1.22'
 
   build-unified-cli:
@@ -53,12 +53,12 @@ jobs:
           set -eu
           for os in darwin linux windows; do
             for arch in amd64 arm64; do
-              GOOS="$os" GOARCH="$arch" go build -o /tmp/cache-cleaner ./cmd/cache-cleaner
+              GOOS="$os" GOARCH="$arch" go build -o /tmp/bilge ./cmd/bilge
             done
           done
           for os in linux windows; do
             for arch in amd64 arm64; do
-              GOOS="$os" GOARCH="$arch" go build -o /tmp/platform-cleaner ./cmd/platform-cache-cleaner
+              GOOS="$os" GOARCH="$arch" go build -o /tmp/platform-cleaner ./cmd/platform-bilge
             done
           done
 
@@ -72,7 +72,7 @@ jobs:
           go-version: '1.22'
           cache-dependency-path: go.sum
       - name: Test native batch argument handling
-        run: go test ./cmd/platform-cache-cleaner
+        run: go test ./cmd/platform-bilge
 
   test-macos-task-json:
     name: Test macOS task JSON integration
@@ -84,7 +84,7 @@ jobs:
           go-version: '1.22'
           cache-dependency-path: go.sum
       - name: Test structured macOS task output
-        run: go test ./cmd/cache-cleaner -run '^TestMacCleanerJSONIsStructured$'
+        run: go test ./cmd/bilge -run '^TestMacCleanerJSONIsStructured$'
 
   test-unix-installer:
     name: Test Unix installer selections

@@ -20,10 +20,11 @@ import (
 
 // ----- Version info -----
 var (
-	version  = "dev"
-	commit   = "none"
-	date     = "unknown"
-	testMode = false // when true, checkTools returns instead of os.Exit
+	version             = "dev"
+	commit              = "none"
+	date                = "unknown"
+	testMode            = false // when true, checkTools returns instead of os.Exit
+	createMigrationTemp = os.CreateTemp
 )
 
 // ----- Command whitelist -----
@@ -126,19 +127,73 @@ type Report struct {
 // ----- Utilities -----
 
 func defaultConfigPath() string {
+	return filepath.Join(configRoot(), "bilge-macos", "config.yaml")
+}
+
+func configRoot() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" && filepath.IsAbs(xdg) && runtime.GOOS != "windows" {
-		return filepath.Join(xdg, "mac-cache-cleaner", "config.yaml")
+		return xdg
 	}
 	if runtime.GOOS == "windows" {
 		if dir, err := os.UserConfigDir(); err == nil && dir != "" {
-			return filepath.Join(dir, "mac-cache-cleaner", "config.yaml")
+			return dir
 		}
 	}
 	h, _ := os.UserHomeDir()
 	if h == "" {
-		return "./config.yaml"
+		return "."
 	}
-	return filepath.Join(h, ".config", "mac-cache-cleaner", "config.yaml")
+	return filepath.Join(h, ".config")
+}
+
+func legacyDefaultConfigPath() string {
+	return filepath.Join(configRoot(), "mac-cache-cleaner", "config.yaml")
+}
+
+func rejectLegacyConfigInit(path string, force bool) error {
+	if force || filepath.Clean(path) != filepath.Clean(defaultConfigPath()) {
+		return nil
+	}
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if _, err := os.Stat(legacyDefaultConfigPath()); err == nil {
+		return fmt.Errorf("existing configuration found at %s; run a normal command to migrate it, or use --force to replace it", legacyDefaultConfigPath())
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+func migrateConfigFile(path string, data []byte, mode os.FileMode) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	tmp, err := createMigrationTemp(dir, ".bilge-config-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if err := tmp.Chmod(mode); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Link(tmpPath, path)
 }
 
 func ensureDir(p string) error { return os.MkdirAll(filepath.Dir(p), 0o755) }
@@ -544,7 +599,21 @@ func loadConfigWithDefaults(path string, allowMissing bool) (*Config, error) {
 	var cfg Config
 	if err != nil {
 		if allowMissing && os.IsNotExist(err) && filepath.Clean(path) == filepath.Clean(defaultConfigPath()) {
-			cfg = defaultConfig()
+			legacyPath := legacyDefaultConfigPath()
+			if legacy, legacyErr := os.ReadFile(legacyPath); legacyErr == nil {
+				if err := yaml.Unmarshal(legacy, &cfg); err != nil {
+					return nil, fmt.Errorf("parse legacy config %s: %w", legacyPath, err)
+				}
+				if err := migrateConfigFile(path, legacy, 0o600); err != nil {
+					fmt.Fprintf(os.Stderr, "warning: could not copy migrated config to %s: %v\n", path, err)
+				} else {
+					fmt.Fprintf(os.Stderr, "Migrated configuration from %s to %s\n", legacyPath, path)
+				}
+			} else if !os.IsNotExist(legacyErr) {
+				return nil, fmt.Errorf("read legacy config %s: %w", legacyPath, legacyErr)
+			} else {
+				cfg = defaultConfig()
+			}
 		} else {
 			return nil, err
 		}
@@ -963,6 +1032,10 @@ func run() int {
 	}
 
 	if *flagInit {
+		if err := rejectLegacyConfigInit(*flagConfig, *flagForce); err != nil {
+			fmt.Println("init error:", err)
+			return 1
+		}
 		if err := writeStarterConfig(*flagConfig, *flagForce); err != nil {
 			fmt.Println("init error:", err)
 			return 1

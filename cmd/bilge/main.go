@@ -85,6 +85,7 @@ func loadConfigWithDefaults(path string, allowMissing bool) (Config, error) {
 	if err := yaml.Unmarshal(b, &cfg); err != nil {
 		return cfg, fmt.Errorf("parse config %s: %w", path, err)
 	}
+	normalizeConfiguredTasks(&cfg)
 	if cfg.ScanPath == "" {
 		cfg.ScanPath = defaultScanPath()
 	}
@@ -92,6 +93,22 @@ func loadConfigWithDefaults(path string, allowMissing bool) (Config, error) {
 		cfg.Tasks = []string{"dev-cache", "git-cleaner", platformCleaner()}
 	}
 	return cfg, nil
+}
+
+func normalizeConfiguredTasks(cfg *Config) bool {
+	legacyNames := map[string]string{
+		"mac-cache-cleaner":     "bilge-macos",
+		"linux-cache-cleaner":   "bilge-linux",
+		"windows-cache-cleaner": "bilge-windows",
+	}
+	changed := false
+	for i, task := range cfg.Tasks {
+		if normalized, ok := legacyNames[task]; ok {
+			cfg.Tasks[i] = normalized
+			changed = true
+		}
+	}
+	return changed
 }
 
 func writeConfig(path string, force bool) error {
@@ -121,11 +138,11 @@ func writeConfig(path string, force bool) error {
 func platformCleaner() string {
 	switch runtime.GOOS {
 	case "darwin":
-		return "mac-cache-cleaner"
+		return "bilge-macos"
 	case "linux":
-		return "linux-cache-cleaner"
+		return "bilge-linux"
 	case "windows":
-		return "windows-cache-cleaner"
+		return "bilge-windows"
 	default:
 		return ""
 	}
@@ -145,7 +162,7 @@ func executableFor(task string) (string, error) {
 	if p, err := exec.LookPath(name); err == nil {
 		return p, nil
 	}
-	return "", fmt.Errorf("%s executable not found beside cache-cleaner or on PATH", task)
+	return "", fmt.Errorf("%s executable not found beside bilge or on PATH", task)
 }
 
 func runTask(task string, args []string, jsonMode bool) TaskResult {
@@ -355,11 +372,11 @@ func withoutArgs(args []string, remove ...string) []string {
 
 func planTaskArgs(tasks, extra []string, clean bool, scanPath string, yes bool) (map[string][]string, error) {
 	allowed := map[string]map[string]bool{
-		"dev-cache":             {"--depth": true, "--languages": true, "--unsafe-clean": false},
-		"git-cleaner":           {},
-		"mac-cache-cleaner":     {"--targets": true, "--docker-prune": false, "--details": false, "--check-tools": false, "--list-targets": false},
-		"linux-cache-cleaner":   {"--targets": true},
-		"windows-cache-cleaner": {"--targets": true},
+		"dev-cache":     {"--depth": true, "--languages": true, "--unsafe-clean": false},
+		"git-cleaner":   {},
+		"bilge-macos":   {"--targets": true, "--docker-prune": false, "--details": false, "--check-tools": false, "--list-targets": false},
+		"bilge-linux":   {"--targets": true},
+		"bilge-windows": {"--targets": true},
 	}
 	for _, task := range tasks {
 		if !isSupportedTask(task) {
@@ -478,14 +495,14 @@ func exitCode(results []TaskResult) int {
 }
 
 func usage() {
-	fmt.Println("cache-cleaner [scan] [flags]")
-	fmt.Println("cache-cleaner clean --all [flags]")
-	fmt.Println("cache-cleaner clean <task> [flags]")
-	fmt.Println("cache-cleaner <task> [flags]")
-	fmt.Println("\nTasks: dev-cache, git-cleaner, mac-cache-cleaner, linux-cache-cleaner, windows-cache-cleaner")
+	fmt.Println("bilge [scan] [flags]")
+	fmt.Println("bilge clean --all [flags]")
+	fmt.Println("bilge clean <task> [flags]")
+	fmt.Println("bilge <task> [flags]")
+	fmt.Println("\nTasks: dev-cache, git-cleaner, bilge-macos, bilge-linux, bilge-windows")
 	fmt.Println("Flags: --config PATH --init [--force] --json --yes")
 	fmt.Println("Examples:")
-	fmt.Println("  cache-cleaner scan                 # Dry-run all configured cleanup tasks")
-	fmt.Println("  cache-cleaner clean --all          # Clean all configured tasks")
-	fmt.Println("  cache-cleaner clean dev-cache      # Clean project caches only")
+	fmt.Println("  bilge scan                 # Dry-run all configured cleanup tasks")
+	fmt.Println("  bilge clean --all          # Clean all configured tasks")
+	fmt.Println("  bilge clean dev-cache      # Clean project caches only")
 }

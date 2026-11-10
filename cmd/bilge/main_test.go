@@ -30,7 +30,7 @@ func TestPlanTaskArgsRoutesYesOnlyToDevCache(t *testing.T) {
 }
 
 func TestPlanTaskArgsRejectsUnknownTasksBeforeLaunching(t *testing.T) {
-	for _, task := range []string{"sh", "./cleaner", "cache-cleaner"} {
+	for _, task := range []string{"sh", "./cleaner", "bilge"} {
 		t.Run(task, func(t *testing.T) {
 			if _, err := planTaskArgs([]string{task}, nil, false, "/tmp/src", false); err == nil {
 				t.Fatalf("planTaskArgs accepted unknown task %q", task)
@@ -75,6 +75,33 @@ func TestLoadConfigWithDefaultsRejectsMissingExplicitConfig(t *testing.T) {
 	}
 	if cfg, err := loadConfigWithDefaults(missing, true); err != nil || len(cfg.Tasks) == 0 {
 		t.Fatalf("implicit default config = %#v, %v; want default tasks", cfg, err)
+	}
+}
+
+func TestLoadConfigMigratesRenamedPlatformTasks(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	original := Config{Version: 1, ScanPath: "/work", Tasks: []string{"dev-cache", "linux-cache-cleaner", "git-cleaner"}}
+	data, err := yaml.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0o400); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := loadConfigWithDefaults(path, false)
+	if err != nil {
+		t.Fatalf("loadConfigWithDefaults: %v", err)
+	}
+	want := []string{"dev-cache", "bilge-linux", "git-cleaner"}
+	if !reflect.DeepEqual(got.Tasks, want) {
+		t.Fatalf("tasks = %#v, want %#v", got.Tasks, want)
+	}
+	if got.ScanPath != original.ScanPath {
+		t.Fatalf("scan path = %q, want %q", got.ScanPath, original.ScanPath)
 	}
 }
 
@@ -159,11 +186,11 @@ func TestMacCleanerJSONIsStructured(t *testing.T) {
 		t.Fatal(err)
 	}
 	binDir := t.TempDir()
-	binary := filepath.Join(binDir, "mac-cache-cleaner")
+	binary := filepath.Join(binDir, "bilge-macos")
 	build := exec.Command("go", "build", "-o", binary, ".")
-	build.Dir = filepath.Join(root, "mac-cache-cleaner")
+	build.Dir = filepath.Join(root, "bilge-macos")
 	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build mac-cache-cleaner: %v: %s", err, output)
+		t.Fatalf("build bilge-macos: %v: %s", err, output)
 	}
 	path := filepath.Join(binDir, "config.yaml")
 	cfg := map[string]any{
@@ -179,9 +206,9 @@ func TestMacCleanerJSONIsStructured(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	result := runTask("mac-cache-cleaner", []string{"--config", path, "--targets", "integration"}, true)
+	result := runTask("bilge-macos", []string{"--config", path, "--targets", "integration"}, true)
 	if result.ExitCode != 0 {
-		t.Fatalf("mac-cache-cleaner exited %d: %s", result.ExitCode, result.Error)
+		t.Fatalf("bilge-macos exited %d: %s", result.ExitCode, result.Error)
 	}
 	var report map[string]json.RawMessage
 	if err := json.Unmarshal(result.Output, &report); err != nil {
