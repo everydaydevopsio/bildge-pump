@@ -3,11 +3,79 @@ package main
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestSafeCachePathFindsNestedRepositoryFromCachePath(t *testing.T) {
+	team := filepath.Join(t.TempDir(), "team")
+	repo := filepath.Join(team, "repo")
+	cache := filepath.Join(repo, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	allowed, reason := safeCachePath(Finding{Path: cache, ProjectRoot: team, Pattern: "node_modules"})
+	if !allowed {
+		t.Fatalf("safeCachePath rejected nested project cache: %s", reason)
+	}
+}
+
+func TestSafeCachePathRejectsNestedRepositoryInsideIgnoredCache(t *testing.T) {
+	repo := t.TempDir()
+	cache := filepath.Join(repo, "node_modules")
+	nested := filepath.Join(cache, "dependency")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", nested, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("nested git init: %v: %s", err, out)
+	}
+
+	allowed, reason := safeCachePath(Finding{Path: cache, Pattern: "node_modules"})
+	if allowed {
+		t.Fatal("safeCachePath allowed deletion of a cache containing a nested Git repository")
+	}
+	if !strings.Contains(reason, "nested Git repository") {
+		t.Fatalf("reason = %q, want nested Git repository explanation", reason)
+	}
+}
+
+func TestSafeCachePathRejectsGitfileAtCacheRoot(t *testing.T) {
+	repo := t.TempDir()
+	cache := filepath.Join(repo, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, ".gitignore"), []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(cache, ".git"), []byte("gitdir: ../.git/worktrees/dependency\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	allowed, reason := safeCachePath(Finding{Path: cache, Pattern: "node_modules"})
+	if allowed || !strings.Contains(reason, "nested Git repository") {
+		t.Fatalf("safeCachePath = %v, %q; want reject nested Git gitfile", allowed, reason)
+	}
+}
 
 func TestCheckVersionFlag(t *testing.T) {
 	tests := []struct {
@@ -395,6 +463,24 @@ func TestWriteStarterConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfigUsesDefaultsWhenDefaultConfigIsMissing(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg, err := loadConfigWithDefaults(defaultConfigPath(), true)
+	if err != nil {
+		t.Fatalf("loadConfig(default path) failed on a fresh install: %v", err)
+	}
+	if len(cfg.Languages) == 0 {
+		t.Fatal("default config has no languages")
+	}
+}
+
+func TestLoadConfigRejectsExplicitMissingDefaultPath(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	if _, err := loadConfigWithDefaults(defaultConfigPath(), false); err == nil {
+		t.Fatal("explicit missing default config path should fail")
+	}
+}
+
 func TestLoadConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfgPath := filepath.Join(tmpDir, "config.yaml")
@@ -666,7 +752,7 @@ func TestScanDirectoryPathFilters(t *testing.T) {
 	patterns := []string{"node_modules"}
 	patternToLang := map[string]string{"node_modules": "node"}
 	filters := ScanFilters{
-		IncludeOnly: []string{includeProj},
+		IncludeOnly:  []string{includeProj},
 		ExcludePaths: []string{excludeProj},
 	}
 	findings := scanDirectory(root, 2, patterns, patternToLang, false, nil, nil, nil, filters)
@@ -675,6 +761,26 @@ func TestScanDirectoryPathFilters(t *testing.T) {
 	}
 	if !strings.Contains(findings[0].Path, "include-me") {
 		t.Fatalf("unexpected finding path: %s", findings[0].Path)
+	}
+}
+
+func TestIncludeOnlyOverridesExclude(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "included-and-excluded")
+	cache := filepath.Join(project, "node_modules")
+	if err := os.MkdirAll(cache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cache, "package.json"), []byte("cache"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	findings := scanDirectory(root, 2, []string{"node_modules"}, map[string]string{"node_modules": "node"}, false, nil, nil, nil, ScanFilters{
+		IncludeOnly:  []string{project},
+		ExcludePaths: []string{project},
+	})
+	if len(findings) != 1 || findings[0].Path != cache {
+		t.Fatalf("includeOnly should take precedence over excludePaths; findings = %+v", findings)
 	}
 }
 
@@ -699,6 +805,48 @@ func TestPassesAgeFilter(t *testing.T) {
 	tooOld.ModMax = now.Add(-10 * 24 * time.Hour)
 	if passesAgeFilter(tooOld, filters) {
 		t.Fatal("expected too-old finding to fail max-age filter")
+	}
+}
+
+func TestPassesAgeFilterRejectsUnknownModificationTime(t *testing.T) {
+	finding := Finding{Path: "/tmp/cache", Pattern: "node_modules"}
+	filters := ScanFilters{Now: time.Now(), MinAge: 24 * time.Hour}
+	if passesAgeFilter(finding, filters) {
+		t.Fatal("expected unknown modification time to fail a configured age filter")
+	}
+
+	filters.MinAge = 0
+	filters.MaxAge = 24 * time.Hour
+	if passesAgeFilter(finding, filters) {
+		t.Fatal("expected unknown modification time to fail a configured max-age filter")
+	}
+}
+
+func TestScanDirectorySkipsNestedFindingsWhenOuterCacheFailsAgeFilter(t *testing.T) {
+	root := t.TempDir()
+	outer := filepath.Join(root, "project", "outer-cache")
+	inner := filepath.Join(outer, "inner-cache")
+	if err := os.MkdirAll(inner, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldFile := filepath.Join(inner, "old.txt")
+	if err := os.WriteFile(oldFile, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-48 * time.Hour)
+	if err := os.Chtimes(oldFile, old, old); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outer, "recent.txt"), []byte("recent"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	findings := scanDirectory(root, 3, []string{"outer-cache", "inner-cache"}, map[string]string{}, false, nil, nil, nil, ScanFilters{
+		Now:    time.Now(),
+		MinAge: 24 * time.Hour,
+	})
+	if len(findings) != 0 {
+		t.Fatalf("filtered outer cache should prevent nested findings, got %+v", findings)
 	}
 }
 
