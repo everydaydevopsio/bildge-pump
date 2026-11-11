@@ -12,7 +12,7 @@
 - [x] Add failing tests for review findings, confirm they fail, then implement the fixes.
 - [x] Run formatting, targeted tests, full repository tests, vet, and coverage checks.
 - [x] Run Bosun against the exact current PR base and address valid findings.
-- [ ] Push the branch and verify all GitHub Actions and review status.
+- [x] Push the branch and verify all GitHub Actions and review status.
 
 ## Test strategy
 - Unit tests for include/exclude matching, duration parsing, age boundaries, and unknown modification times.
@@ -24,4 +24,4 @@
 
 ## Outcome
 - Result: Current-main merge integrated; filter precedence, relative/nested paths, include glob traversal, age-filter traversal/unknown times, excluded descendants, and strict duration parsing addressed.
-- Evidence: regression tests failed before fixes and passed afterward; `make test`, `make vet`, `make fmt`, and `go test -cover ./...` passed for dev-cache (63.6%). The first PR update passed all seven GitHub Actions checks; final head verification pending.
+- Evidence: regression tests failed before fixes and passed afterward; `make test`, `make vet`, `make fmt`, and `go test -cover ./...` passed for dev-cache (63.6%). All seven GitHub Actions checks passed on commit `a7b159f`. GitHub rejected the Copilot reviewer request because that account is not a repository collaborator; PR review decision remains required.
