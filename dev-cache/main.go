@@ -7,11 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -149,7 +151,13 @@ func expandAndCleanPatterns(patterns []string) []string {
 		if strings.TrimSpace(p) == "" {
 			continue
 		}
-		out = append(out, filepath.Clean(expand(strings.TrimSpace(p))))
+		path := filepath.Clean(expand(strings.TrimSpace(p)))
+		if !filepath.IsAbs(path) {
+			if abs, err := filepath.Abs(path); err == nil {
+				path = abs
+			}
+		}
+		out = append(out, path)
 	}
 	return out
 }
@@ -172,6 +180,39 @@ func matchesPathPattern(path, pattern string) bool {
 func matchesAnyPattern(path string, patterns []string) bool {
 	for _, p := range patterns {
 		if matchesPathPattern(path, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func pathMatchesPatternOrAncestor(path string, patterns []string) bool {
+	path = filepath.Clean(path)
+	for current := path; ; current = filepath.Dir(current) {
+		if matchesAnyPattern(current, patterns) {
+			return true
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return false
+		}
+	}
+}
+
+func mayContainPatternMatch(path string, patterns []string) bool {
+	path = filepath.Clean(path)
+	for _, pattern := range patterns {
+		pattern = filepath.Clean(pattern)
+		wildcard := strings.IndexAny(pattern, "*?[")
+		if wildcard < 0 {
+			if pattern == path || strings.HasPrefix(pattern, path+string(filepath.Separator)) {
+				return true
+			}
+			continue
+		}
+
+		prefix := strings.TrimRight(pattern[:wildcard], string(filepath.Separator))
+		if prefix == "" || prefix == path || strings.HasPrefix(prefix, path+string(filepath.Separator)) {
 			return true
 		}
 	}
@@ -201,9 +242,12 @@ func parseAgeDuration(s string) (time.Duration, error) {
 	default:
 		return 0, fmt.Errorf("unsupported duration unit in %q (use m/h/d/w)", s)
 	}
-	var n int64
-	if _, err := fmt.Sscanf(num, "%d", &n); err != nil || n < 0 {
+	n, err := strconv.ParseInt(num, 10, 64)
+	if err != nil || n < 0 {
 		return 0, fmt.Errorf("invalid duration value: %q", s)
+	}
+	if n > math.MaxInt64/int64(mult) {
+		return 0, fmt.Errorf("duration overflows time.Duration: %q", s)
 	}
 	return time.Duration(n) * mult, nil
 }
@@ -828,9 +872,6 @@ func scanDirectory(root string, maxDepth int, patterns []string, patternToLang m
 	findingsByPath := make(map[string]bool)
 	// Track excluded directories (will be reported with empty language)
 	excludedDirs := make(map[string]bool)
-	// Track whether depth-0 roots are included/excluded by path filters.
-	allowedDepth0 := make(map[string]bool)
-
 	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil // Continue on errors
@@ -869,27 +910,12 @@ func scanDirectory(root string, maxDepth int, patterns []string, patternToLang m
 			return filepath.SkipDir
 		}
 
-		parts := strings.Split(relPath, string(filepath.Separator))
-		projectRootPath := cleanPath
-		if len(parts) > 0 && parts[0] != "." && parts[0] != "" {
-			projectRootPath = filepath.Join(root, parts[0])
-		}
-
-		// Apply include/exclude path filters at project-root granularity.
-		if depth == 0 {
-			allowed := true
-			if len(filters.IncludeOnly) > 0 {
-				allowed = matchesAnyPattern(projectRootPath, filters.IncludeOnly)
-			}
-			// includeOnly is a whitelist and takes precedence when configured.
-			if len(filters.IncludeOnly) == 0 && allowed && matchesAnyPattern(projectRootPath, filters.ExcludePaths) {
-				allowed = false
-			}
-			allowedDepth0[projectRootPath] = allowed
-			if !allowed {
+		included := len(filters.IncludeOnly) == 0 || pathMatchesPatternOrAncestor(cleanPath, filters.IncludeOnly)
+		if len(filters.IncludeOnly) > 0 {
+			if !included && !mayContainPatternMatch(cleanPath, filters.IncludeOnly) {
 				return filepath.SkipDir
 			}
-		} else if ok, seen := allowedDepth0[projectRootPath]; seen && !ok {
+		} else if pathMatchesPatternOrAncestor(cleanPath, filters.ExcludePaths) {
 			return filepath.SkipDir
 		}
 
@@ -1151,6 +1177,20 @@ func scanDirectory(root string, maxDepth int, patterns []string, patternToLang m
 			}
 			findings = append(findings, f)
 		}
+	}
+
+	if len(filters.IncludeOnly) > 0 {
+		filtered := findings[:0]
+		for _, f := range findings {
+			candidate := f.Path
+			if !isCacheDirectory(f) && f.ProjectRoot != "" {
+				candidate = f.ProjectRoot
+			}
+			if pathMatchesPatternOrAncestor(candidate, filters.IncludeOnly) {
+				filtered = append(filtered, f)
+			}
+		}
+		findings = filtered
 	}
 
 	return findings

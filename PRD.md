@@ -289,7 +289,7 @@ languages:
 - **Wildcard prefix**: `cmake-build-*` matches `cmake-build-debug`, `cmake-build-release`, etc.
 
 #### Path and Age Filters
-- `excludePaths` and `includeOnly` accept exact paths, descendant paths, and path globs. The matching applies to each project root.
+- `excludePaths` and `includeOnly` accept exact paths, descendant paths, and path globs; relative patterns resolve from the process working directory. Filters apply throughout the scan tree so nested projects can be selected.
 - CLI `--exclude`, `--include-only`, `--min-age`, and `--max-age` values override their corresponding config values.
 - When `includeOnly` is configured, it acts as a whitelist and takes precedence over `excludePaths`; otherwise matching excluded roots are skipped.
 - Age filters use the newest file modification time within each cache directory. `minAge` keeps caches at least that old; `maxAge` keeps caches no older than that. If both are set, a cache must satisfy both.

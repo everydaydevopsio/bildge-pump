@@ -715,6 +715,9 @@ func TestParseAgeDuration(t *testing.T) {
 		{"", 0, false},
 		{"-1d", 0, true},
 		{"7x", 0, true},
+		{"1.5d", 0, true},
+		{"1h30m", 0, true},
+		{"9223372036854775807d", 0, true},
 	}
 	for _, tt := range tests {
 		got, err := parseAgeDuration(tt.in)
@@ -781,6 +784,56 @@ func TestIncludeOnlyOverridesExclude(t *testing.T) {
 	})
 	if len(findings) != 1 || findings[0].Path != cache {
 		t.Fatalf("includeOnly should take precedence over excludePaths; findings = %+v", findings)
+	}
+}
+
+func TestPathFiltersResolveRelativeToWorkingDirectoryAndSupportNestedProjects(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	scanRoot, err := filepath.Abs(filepath.Join(".", "src"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	projects := []string{
+		filepath.Join(scanRoot, "team", "project"),
+		filepath.Join(scanRoot, "team", "other"),
+	}
+	for _, project := range projects {
+		cache := filepath.Join(project, "node_modules")
+		if err := os.MkdirAll(cache, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(cache, "cache.txt"), []byte("cache"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	patterns := []string{"node_modules"}
+	patternToLang := map[string]string{"node_modules": "node"}
+	filtered := scanDirectory(filepath.Join(".", "src"), 3, patterns, patternToLang, false, nil, nil, nil, ScanFilters{
+		ExcludePaths: expandAndCleanPatterns([]string{"./src/team/project"}),
+	})
+	if len(filtered) != 1 || filtered[0].Path != filepath.Join(projects[1], "node_modules") {
+		t.Fatalf("relative nested exclusion got %+v; want %s", filtered, filepath.Join(projects[1], "node_modules"))
+	}
+
+	included := scanDirectory(filepath.Join(".", "src"), 3, patterns, patternToLang, false, nil, nil, nil, ScanFilters{
+		IncludeOnly: expandAndCleanPatterns([]string{"./src/team/*"}),
+	})
+	if len(included) != 2 {
+		t.Fatalf("nested include glob should reach both projects below its parent, findings = %+v", included)
 	}
 }
 
