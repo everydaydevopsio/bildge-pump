@@ -294,6 +294,7 @@ languages:
 - When `includeOnly` is configured, it acts as a whitelist and takes precedence over `excludePaths`; otherwise matching excluded roots are skipped.
 - Age filters use the newest file modification time within each cache directory. `minAge` keeps caches at least that old; `maxAge` keeps caches no older than that. If both are set, a cache must satisfy both.
 - When an age filter is active and a cache's modification time cannot be determined, the cache is omitted from results and cleanup. A cache directory excluded by age is not traversed for nested findings.
+- If an excluded path is inside a cache directory, the enclosing cache is omitted from scan results and cleanup because removing it would delete the excluded path.
 - Path and age filters apply to both scans and cleanup.
 
 #### Reporting Features

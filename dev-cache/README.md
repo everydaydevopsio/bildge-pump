@@ -152,6 +152,8 @@ Use `--exclude` or config `excludePaths` to skip matching project roots. Use `--
 
 Age filters use the newest file modification time in each cache. `--min-age 30d` includes caches at least 30 days old; `--max-age 7d` includes caches no older than 7 days. When both are set, a cache must satisfy both. If an active age filter cannot determine a cache's modification time, the cache is skipped. Excluded cache directories are not traversed for nested findings. These filters apply to both reporting and cleanup.
 
+If an excluded path is inside a cache directory, the enclosing cache is also skipped so cleanup cannot delete the excluded path.
+
 ```bash
 ./build/dev-cache --scan ~/src --include-only '~/src/team/*' --min-age 30d
 ./build/dev-cache --scan ~/src --exclude ~/src/archive --max-age 7d --json

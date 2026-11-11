@@ -203,16 +203,20 @@ func mayContainPatternMatch(path string, patterns []string) bool {
 	path = filepath.Clean(path)
 	for _, pattern := range patterns {
 		pattern = filepath.Clean(pattern)
-		wildcard := strings.IndexAny(pattern, "*?[")
-		if wildcard < 0 {
-			if pattern == path || strings.HasPrefix(pattern, path+string(filepath.Separator)) {
-				return true
-			}
+		pathParts := strings.Split(path, string(filepath.Separator))
+		patternParts := strings.Split(pattern, string(filepath.Separator))
+		if len(pathParts) > len(patternParts) {
 			continue
 		}
-
-		prefix := strings.TrimRight(pattern[:wildcard], string(filepath.Separator))
-		if prefix == "" || prefix == path || strings.HasPrefix(prefix, path+string(filepath.Separator)) {
+		canMatch := true
+		for i, pathPart := range pathParts {
+			matched, err := filepath.Match(patternParts[i], pathPart)
+			if err != nil || !matched {
+				canMatch = false
+				break
+			}
+		}
+		if canMatch {
 			return true
 		}
 	}
@@ -1082,6 +1086,11 @@ func scanDirectory(root string, maxDepth int, patterns []string, patternToLang m
 		// This ensures cache directories are detected even if they're at depth 0
 		for _, pattern := range patternsToCheck {
 			if matchPattern(dirName, pattern) {
+				// An excluded descendant cannot be preserved if the parent cache
+				// directory itself is deleted, so leave the whole cache untouched.
+				if len(filters.IncludeOnly) == 0 && mayContainPatternMatch(cleanPath, filters.ExcludePaths) {
+					break
+				}
 				// Found a match - calculate size
 				f, err := inspectPath(path)
 				if err != nil {

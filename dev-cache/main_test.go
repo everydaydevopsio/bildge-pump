@@ -837,6 +837,76 @@ func TestPathFiltersResolveRelativeToWorkingDirectoryAndSupportNestedProjects(t 
 	}
 }
 
+func TestIncludeOnlyGlobsWithIntermediateWildcards(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	scanRoot := filepath.Join(".", "src")
+	projects := []string{
+		filepath.Join("src", "team", "project"),
+		filepath.Join("src", "team", "other"),
+		filepath.Join("src", "team-red", "project"),
+	}
+	for _, project := range projects {
+		cache := filepath.Join(project, "node_modules")
+		if err := os.MkdirAll(cache, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(cache, "cache.txt"), []byte("cache"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	patterns := []string{"node_modules"}
+	patternToLang := map[string]string{"node_modules": "node"}
+	included := scanDirectory(scanRoot, 4, patterns, patternToLang, false, nil, nil, nil, ScanFilters{
+		IncludeOnly: expandAndCleanPatterns([]string{"./src/*/project"}),
+	})
+	if len(included) != 2 {
+		t.Fatalf("intermediate wildcard should include both project roots, findings = %+v", included)
+	}
+
+	prefixed := scanDirectory(scanRoot, 4, patterns, patternToLang, false, nil, nil, nil, ScanFilters{
+		IncludeOnly: expandAndCleanPatterns([]string{"./src/team-*/project"}),
+	})
+	if len(prefixed) != 1 || !strings.Contains(prefixed[0].Path, filepath.Join("team-red", "project", "node_modules")) {
+		t.Fatalf("wildcard prefix in an intermediate component should include team-red only, findings = %+v", prefixed)
+	}
+}
+
+func TestExcludeDescendantPreventsSelectingParentCache(t *testing.T) {
+	root := t.TempDir()
+	cache := filepath.Join(root, "project", "node_modules")
+	excluded := filepath.Join(cache, "keep")
+	if err := os.MkdirAll(filepath.Join(excluded, "nested-cache"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(excluded, "nested-cache", "cache.txt"), []byte("keep"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cache, "remove.txt"), []byte("cache"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	findings := scanDirectory(root, 4, []string{"node_modules", "nested-cache"}, map[string]string{}, false, nil, nil, nil, ScanFilters{
+		ExcludePaths: []string{excluded},
+	})
+	if len(findings) != 0 {
+		t.Fatalf("cache containing an excluded descendant must not be selected for deletion, findings = %+v", findings)
+	}
+}
+
 func TestPassesAgeFilter(t *testing.T) {
 	now := time.Now()
 	base := Finding{
