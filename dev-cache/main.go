@@ -1086,6 +1086,12 @@ func scanDirectory(root string, maxDepth int, patterns []string, patternToLang m
 		// This ensures cache directories are detected even if they're at depth 0
 		for _, pattern := range patternsToCheck {
 			if matchPattern(dirName, pattern) {
+				// An include-only target can be nested below a cache-named directory.
+				// Keep walking through that ancestor instead of selecting it and
+				// skipping the subtree before the included project is reached.
+				if len(filters.IncludeOnly) > 0 && !included {
+					break
+				}
 				// An excluded descendant cannot be preserved if the parent cache
 				// directory itself is deleted, so leave the whole cache untouched.
 				if len(filters.IncludeOnly) == 0 && mayContainPatternMatch(cleanPath, filters.ExcludePaths) {

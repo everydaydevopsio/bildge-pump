@@ -885,6 +885,27 @@ func TestIncludeOnlyGlobsWithIntermediateWildcards(t *testing.T) {
 	}
 }
 
+func TestIncludeOnlyTraversesThroughCacheNamedAncestor(t *testing.T) {
+	root := t.TempDir()
+	projectCache := filepath.Join(root, "src", "build", "project", "node_modules")
+	if err := os.MkdirAll(projectCache, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectCache, "package.json"), []byte("cache"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	findings := scanDirectory(root, 4, []string{"build", "node_modules"}, map[string]string{
+		"build":        "",
+		"node_modules": "node",
+	}, false, nil, nil, nil, ScanFilters{
+		IncludeOnly: []string{filepath.Join(root, "src", "build", "project")},
+	})
+	if len(findings) != 1 || findings[0].Path != projectCache {
+		t.Fatalf("include-only scan beneath cache-named ancestor = %+v, want only %s", findings, projectCache)
+	}
+}
+
 func TestExcludeDescendantPreventsSelectingParentCache(t *testing.T) {
 	root := t.TempDir()
 	cache := filepath.Join(root, "project", "node_modules")

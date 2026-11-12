@@ -235,6 +235,7 @@ A cross-platform Go CLI tool that scans source code directories to find and opti
 - `--include-only PATHS` comma-separated project paths to scan; when set, this whitelist takes precedence over `excludePaths`
 - `--min-age DURATION` only include caches at least this old (for example, `30d`)
 - `--max-age DURATION` only include caches no older than this (for example, `7d`)
+- Unified `bilge scan` and `bilge clean` commands forward `--exclude`, `--include-only`, `--min-age`, and `--max-age` to `dev-cache` when that task is selected.
 - `--clean` deletes found cache directories
 - `--yes` skips confirmation prompt for cleanup
 - `--json` outputs results as JSON
@@ -296,6 +297,7 @@ languages:
 - When an age filter is active and a cache's modification time cannot be determined, the cache is omitted from results and cleanup. A cache directory excluded by age is not traversed for nested findings.
 - If an excluded path is inside a cache directory, the enclosing cache is omitted from scan results and cleanup because removing it would delete the excluded path.
 - Path and age filters apply to both scans and cleanup.
+- Include-only scanning continues through cache-pattern directories that are ancestors of an included project, without selecting or deleting those ancestor directories.
 
 #### Reporting Features
 - Summary mode (default): Groups findings by language with totals

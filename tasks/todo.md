@@ -23,5 +23,5 @@
 - Revert the filter commit if the behavior or CI is incorrect; retain the main-merge commit needed to keep the PR current.
 
 ## Outcome
-- Result: Current-main merge integrated; filter precedence, relative/nested paths, include glob traversal, age-filter traversal/unknown times, excluded descendants, and strict duration parsing addressed.
-- Evidence: regression tests failed before fixes and passed afterward; `make test`, `make vet`, `make fmt`, and `go test -cover ./...` passed for dev-cache (63.6%). All seven GitHub Actions checks passed on commit `a7b159f`. GitHub rejected the Copilot reviewer request because that account is not a repository collaborator; PR review decision remains required.
+- Result: Current-main merge integrated; filter precedence, relative/nested paths, include glob traversal, age-filter traversal/unknown times, excluded descendants, strict duration parsing, unified CLI filter forwarding, and traversal through cache-named ancestors addressed.
+- Evidence: regression tests failed before fixes and passed afterward; full `make test` and `make vet` pass, and `dev-cache` coverage is 64.2%. Awaiting CI and a fresh Bosun review for the latest fixes.
