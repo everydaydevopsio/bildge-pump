@@ -148,9 +148,9 @@ Patterns support:
 
 ### Path and Age Filters
 
-Use `--exclude` or config `excludePaths` to skip matching project roots. Use `--include-only` or `includeOnly` to scan only matching project roots; when `includeOnly` is set, it takes precedence over `excludePaths`. Filters accept exact paths, descendant paths, and path globs. Relative patterns resolve from the current working directory, and filters apply to nested projects. CLI flags override their matching config values.
+Use `--exclude` or config `excludePaths` to skip matching project roots. Use `--include-only` or `includeOnly` to scan only matching project roots; when `includeOnly` is set, it takes precedence over `excludePaths`. Filters accept exact paths, descendant paths, and path globs. Relative patterns resolve from the current working directory, and filters apply to nested projects. CLI flags override their matching config values; explicitly passing an empty value (for example, `--include-only=`) clears that configured filter.
 
-Age filters use the newest file modification time in each cache. `--min-age 30d` includes caches at least 30 days old; `--max-age 7d` includes caches no older than 7 days. When both are set, a cache must satisfy both. If an active age filter cannot determine a cache's modification time, the cache is skipped. Excluded cache directories are not traversed for nested findings. These filters apply to both reporting and cleanup.
+Age filters use the newest file modification time in each cache. `--min-age 30d` includes caches at least 30 days old; `--max-age 7d` includes caches no older than 7 days. When both are set, a cache must satisfy both. If an active age filter cannot determine a cache's modification time or the cache inspection is incomplete, the cache is skipped. Excluded cache directories are not traversed for nested findings. These filters apply to both reporting and cleanup.
 
 If an excluded path is inside a cache directory, the enclosing cache is also skipped so cleanup cannot delete the excluded path.
 

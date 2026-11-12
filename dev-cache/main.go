@@ -145,6 +145,22 @@ func splitCSV(v string) []string {
 	return out
 }
 
+func applyFilterOverrides(options Options, values map[string]string, explicitlySet map[string]bool) Options {
+	if explicitlySet["exclude"] {
+		options.ExcludePaths = splitCSV(values["exclude"])
+	}
+	if explicitlySet["include-only"] {
+		options.IncludeOnly = splitCSV(values["include-only"])
+	}
+	if explicitlySet["min-age"] {
+		options.MinAge = values["min-age"]
+	}
+	if explicitlySet["max-age"] {
+		options.MaxAge = values["max-age"]
+	}
+	return options
+}
+
 func expandAndCleanPatterns(patterns []string) []string {
 	out := make([]string, 0, len(patterns))
 	for _, p := range patterns {
@@ -260,6 +276,9 @@ func passesAgeFilter(f Finding, filters ScanFilters) bool {
 	if !isCacheDirectory(f) {
 		return true
 	}
+	if (filters.MinAge > 0 || filters.MaxAge > 0) && f.Err != "" {
+		return false
+	}
 	if f.ModMax.IsZero() {
 		return filters.MinAge <= 0 && filters.MaxAge <= 0
 	}
@@ -302,6 +321,10 @@ func human(n int64) string {
 }
 
 func inspectPath(root string) (Finding, error) {
+	return inspectPathWithWalk(root, filepath.WalkDir)
+}
+
+func inspectPathWithWalk(root string, walkDir func(string, fs.WalkDirFunc) error) (Finding, error) {
 	f := Finding{Path: root}
 	fi, err := os.Stat(root)
 	if err != nil {
@@ -313,7 +336,7 @@ func inspectPath(root string) (Finding, error) {
 		f.ModMax = fi.ModTime()
 		return f, nil
 	}
-	errWalk := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	errWalk := walkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if f.Err == "" {
 				f.Err = err.Error()
@@ -325,6 +348,9 @@ func inspectPath(root string) (Finding, error) {
 		}
 		info, e := d.Info()
 		if e != nil {
+			if f.Err == "" {
+				f.Err = e.Error()
+			}
 			return nil
 		}
 		f.Items++
@@ -334,6 +360,9 @@ func inspectPath(root string) (Finding, error) {
 		}
 		return nil
 	})
+	if errWalk != nil && f.Err == "" {
+		f.Err = errWalk.Error()
+	}
 	return f, errWalk
 }
 
@@ -441,12 +470,11 @@ func main() {
 	}
 
 	flag.Parse()
-	configExplicit := false
+	explicitFlags := make(map[string]bool)
 	flag.Visit(func(f *flag.Flag) {
-		if f.Name == "config" {
-			configExplicit = true
-		}
+		explicitFlags[f.Name] = true
 	})
+	configExplicit := explicitFlags["config"]
 
 	if *flagInit {
 		if err := writeStarterConfig(*flagConfig, *flagForce); err != nil {
@@ -463,6 +491,12 @@ func main() {
 		fmt.Println("Tip: run with --init to create a starter config")
 		os.Exit(1)
 	}
+	filterOptions := applyFilterOverrides(cfg.Options, map[string]string{
+		"exclude":      *flagExclude,
+		"include-only": *flagInclude,
+		"min-age":      *flagMinAge,
+		"max-age":      *flagMaxAge,
+	}, explicitFlags)
 
 	// Determine scan path
 	scanPath := cfg.Options.DefaultScanPath
@@ -477,14 +511,8 @@ func main() {
 		maxDepth = *flagDepth
 	}
 
-	minAgeStr := cfg.Options.MinAge
-	if *flagMinAge != "" {
-		minAgeStr = *flagMinAge
-	}
-	maxAgeStr := cfg.Options.MaxAge
-	if *flagMaxAge != "" {
-		maxAgeStr = *flagMaxAge
-	}
+	minAgeStr := filterOptions.MinAge
+	maxAgeStr := filterOptions.MaxAge
 	minAge, err := parseAgeDuration(minAgeStr)
 	if err != nil {
 		fmt.Println("invalid --min-age:", err)
@@ -496,17 +524,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	excludePatterns := cfg.Options.ExcludePaths
-	if *flagExclude != "" {
-		excludePatterns = splitCSV(*flagExclude)
-	}
-	includePatterns := cfg.Options.IncludeOnly
-	if *flagInclude != "" {
-		includePatterns = splitCSV(*flagInclude)
-	}
 	filters := ScanFilters{
-		ExcludePaths: expandAndCleanPatterns(excludePatterns),
-		IncludeOnly:  expandAndCleanPatterns(includePatterns),
+		ExcludePaths: expandAndCleanPatterns(filterOptions.ExcludePaths),
+		IncludeOnly:  expandAndCleanPatterns(filterOptions.IncludeOnly),
 		MinAge:       minAge,
 		MaxAge:       maxAge,
 		Now:          time.Now(),

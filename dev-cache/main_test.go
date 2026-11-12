@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -963,6 +965,88 @@ func TestPassesAgeFilterRejectsUnknownModificationTime(t *testing.T) {
 	filters.MaxAge = 24 * time.Hour
 	if passesAgeFilter(finding, filters) {
 		t.Fatal("expected unknown modification time to fail a configured max-age filter")
+	}
+}
+
+type failingInfoDirEntry struct{ fs.DirEntry }
+
+func (failingInfoDirEntry) Info() (fs.FileInfo, error) {
+	return nil, errors.New("permission denied")
+}
+
+func TestPassesAgeFilterRejectsPartialInspection(t *testing.T) {
+	cache := t.TempDir()
+	oldFile := filepath.Join(cache, "old-readable.txt")
+	newFile := filepath.Join(cache, "new-unreadable.txt")
+	for _, path := range []string{oldFile, newFile} {
+		if err := os.WriteFile(path, []byte("cache"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	now := time.Now()
+	old := now.Add(-48 * time.Hour)
+	if err := os.Chtimes(oldFile, old, old); err != nil {
+		t.Fatal(err)
+	}
+
+	walkWithUnreadableFile := func(root string, fn fs.WalkDirFunc) error {
+		return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+			if err == nil && path == newFile {
+				entry = failingInfoDirEntry{DirEntry: entry}
+			}
+			return fn(path, entry, err)
+		})
+	}
+	finding, err := inspectPathWithWalk(cache, walkWithUnreadableFile)
+	if err != nil {
+		t.Fatalf("inspectPathWithWalk: %v", err)
+	}
+	if finding.Err == "" || !finding.ModMax.Equal(old) {
+		t.Fatalf("partial inspection finding = %+v, want recorded error and readable file timestamp", finding)
+	}
+	finding.Pattern = "node_modules"
+	if passesAgeFilter(finding, ScanFilters{Now: now, MinAge: 24 * time.Hour}) {
+		t.Fatal("age filter accepted a partial inspection with an old readable file")
+	}
+}
+
+func TestApplyFilterOverridesCanClearConfiguredFilters(t *testing.T) {
+	configured := Options{
+		ExcludePaths: []string{"/src/archive"},
+		IncludeOnly:  []string{"/src/team"},
+		MinAge:       "30d",
+		MaxAge:       "90d",
+	}
+	for _, tt := range []struct {
+		name string
+		key  string
+	}{
+		{name: "exclude", key: "exclude"},
+		{name: "include-only", key: "include-only"},
+		{name: "min-age", key: "min-age"},
+		{name: "max-age", key: "max-age"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := applyFilterOverrides(configured, map[string]string{tt.key: ""}, map[string]bool{tt.key: true})
+			switch tt.key {
+			case "exclude":
+				if len(got.ExcludePaths) != 0 || len(got.IncludeOnly) != 1 || got.MinAge != "30d" || got.MaxAge != "90d" {
+					t.Fatalf("clearing exclude produced options %+v", got)
+				}
+			case "include-only":
+				if len(got.IncludeOnly) != 0 || len(got.ExcludePaths) != 1 || got.MinAge != "30d" || got.MaxAge != "90d" {
+					t.Fatalf("clearing include-only produced options %+v", got)
+				}
+			case "min-age":
+				if got.MinAge != "" || got.MaxAge != "90d" || len(got.ExcludePaths) != 1 || len(got.IncludeOnly) != 1 {
+					t.Fatalf("clearing min-age produced options %+v", got)
+				}
+			case "max-age":
+				if got.MaxAge != "" || got.MinAge != "30d" || len(got.ExcludePaths) != 1 || len(got.IncludeOnly) != 1 {
+					t.Fatalf("clearing max-age produced options %+v", got)
+				}
+			}
+		})
 	}
 }
 
