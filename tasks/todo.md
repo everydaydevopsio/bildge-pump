@@ -24,4 +24,4 @@
 
 ## Outcome
 - Result: Current-main merge integrated; filter precedence, relative/nested paths, include glob traversal, age-filter traversal/unknown times, excluded descendants, strict duration parsing, unified CLI filter forwarding, cache-named ancestors, partial inspections, empty CLI overrides, malformed globs, and zero age bounds addressed.
-- Evidence: regression tests failed before fixes and passed afterward; full `make test` and `make vet` pass, and `dev-cache` coverage is 66.3%. The second and final Bosun review round reviewed `b363ce9`; its malformed-glob and zero-age findings are fixed in the current uncommitted changes. Final commit and CI verification pending.
+- Evidence: regression tests failed before fixes and passed afterward; full `make test` and `make vet` pass, and `dev-cache` coverage is 66.3%. The second and final Bosun review round reviewed `b363ce9`; its malformed-glob and zero-age findings were fixed in `36be7f4`. All seven GitHub Actions pass on `36be7f4`. No third review round was started, honoring the two-round limit.
