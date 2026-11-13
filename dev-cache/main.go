@@ -178,6 +178,20 @@ func expandAndCleanPatterns(patterns []string) []string {
 	return out
 }
 
+func validatePathPatterns(patterns []string) error {
+	for _, pattern := range patterns {
+		pattern = strings.TrimSpace(pattern)
+		if pattern == "" {
+			continue
+		}
+		pattern = filepath.Clean(expand(pattern))
+		if _, err := filepath.Match(pattern, ""); err != nil {
+			return fmt.Errorf("invalid path pattern %q: %w", pattern, err)
+		}
+	}
+	return nil
+}
+
 func matchesPathPattern(path, pattern string) bool {
 	path = filepath.Clean(path)
 	pattern = filepath.Clean(pattern)
@@ -265,6 +279,9 @@ func parseAgeDuration(s string) (time.Duration, error) {
 	n, err := strconv.ParseInt(num, 10, 64)
 	if err != nil || n < 0 {
 		return 0, fmt.Errorf("invalid duration value: %q", s)
+	}
+	if n == 0 {
+		return 0, fmt.Errorf("duration must be greater than zero: %q", s)
 	}
 	if n > math.MaxInt64/int64(mult) {
 		return 0, fmt.Errorf("duration overflows time.Duration: %q", s)
@@ -497,6 +514,12 @@ func main() {
 		"min-age":      *flagMinAge,
 		"max-age":      *flagMaxAge,
 	}, explicitFlags)
+	for _, patterns := range [][]string{filterOptions.ExcludePaths, filterOptions.IncludeOnly} {
+		if err := validatePathPatterns(patterns); err != nil {
+			fmt.Println("invalid path filter:", err)
+			os.Exit(1)
+		}
+	}
 
 	// Determine scan path
 	scanPath := cfg.Options.DefaultScanPath

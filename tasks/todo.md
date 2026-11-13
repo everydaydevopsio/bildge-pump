@@ -23,5 +23,5 @@
 - Revert the filter commit if the behavior or CI is incorrect; retain the main-merge commit needed to keep the PR current.
 
 ## Outcome
-- Result: Current-main merge integrated; filter precedence, relative/nested paths, include glob traversal, age-filter traversal/unknown times, excluded descendants, strict duration parsing, unified CLI filter forwarding, and traversal through cache-named ancestors addressed.
-- Evidence: regression tests failed before fixes and passed afterward; full `make test` and `make vet` pass, and `dev-cache` coverage is 64.2%. Awaiting CI and a fresh Bosun review for the latest fixes.
+- Result: Current-main merge integrated; filter precedence, relative/nested paths, include glob traversal, age-filter traversal/unknown times, excluded descendants, strict duration parsing, unified CLI filter forwarding, cache-named ancestors, partial inspections, empty CLI overrides, malformed globs, and zero age bounds addressed.
+- Evidence: regression tests failed before fixes and passed afterward; full `make test` and `make vet` pass, and `dev-cache` coverage is 66.3%. The second and final Bosun review round reviewed `b363ce9`; its malformed-glob and zero-age findings are fixed in the current uncommitted changes. Final commit and CI verification pending.

@@ -715,6 +715,7 @@ func TestParseAgeDuration(t *testing.T) {
 		{"48h", 48 * time.Hour, false},
 		{"90m", 90 * time.Minute, false},
 		{"", 0, false},
+		{"0d", 0, true},
 		{"-1d", 0, true},
 		{"7x", 0, true},
 		{"1.5d", 0, true},
@@ -836,6 +837,15 @@ func TestPathFiltersResolveRelativeToWorkingDirectoryAndSupportNestedProjects(t 
 	})
 	if len(included) != 2 {
 		t.Fatalf("nested include glob should reach both projects below its parent, findings = %+v", included)
+	}
+}
+
+func TestValidatePathPatterns(t *testing.T) {
+	if err := validatePathPatterns([]string{"./src/team-*", "./src/project"}); err != nil {
+		t.Fatalf("valid path patterns rejected: %v", err)
+	}
+	if err := validatePathPatterns([]string{"./src/project["}); err == nil {
+		t.Fatal("malformed exclusion glob was accepted")
 	}
 }
 

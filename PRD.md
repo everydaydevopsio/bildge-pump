@@ -290,11 +290,11 @@ languages:
 - **Wildcard prefix**: `cmake-build-*` matches `cmake-build-debug`, `cmake-build-release`, etc.
 
 #### Path and Age Filters
-- `excludePaths` and `includeOnly` accept exact paths, descendant paths, and path globs; relative patterns resolve from the process working directory. Filters apply throughout the scan tree so nested projects can be selected.
+- `excludePaths` and `includeOnly` accept exact paths, descendant paths, and valid path globs; relative patterns resolve from the process working directory. Malformed globs fail before scanning. Filters apply throughout the scan tree so nested projects can be selected.
 - CLI `--exclude`, `--include-only`, `--min-age`, and `--max-age` values override their corresponding config values.
 - Explicitly supplying any of these CLI flags with an empty value clears that filter from the config.
 - When `includeOnly` is configured, it acts as a whitelist and takes precedence over `excludePaths`; otherwise matching excluded roots are skipped.
-- Age filters use the newest file modification time within each cache directory. `minAge` keeps caches at least that old; `maxAge` keeps caches no older than that. If both are set, a cache must satisfy both.
+- Age filters use the newest file modification time within each cache directory. `minAge` keeps caches at least that old; `maxAge` keeps caches no older than that. Durations must be greater than zero; an empty value disables that filter. If both are set, a cache must satisfy both.
 - When an age filter is active and a cache's modification time cannot be determined or its inspection is incomplete, the cache is omitted from results and cleanup. A cache directory excluded by age is not traversed for nested findings.
 - If an excluded path is inside a cache directory, the enclosing cache is omitted from scan results and cleanup because removing it would delete the excluded path.
 - Path and age filters apply to both scans and cleanup.
