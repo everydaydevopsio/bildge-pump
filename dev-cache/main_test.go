@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestSafeCachePathFindsNestedRepositoryFromCachePath(t *testing.T) {
@@ -1017,6 +1019,75 @@ func TestPassesAgeFilterRejectsPartialInspection(t *testing.T) {
 	finding.Pattern = "node_modules"
 	if passesAgeFilter(finding, ScanFilters{Now: now, MinAge: 24 * time.Hour}) {
 		t.Fatal("age filter accepted a partial inspection with an old readable file")
+	}
+}
+
+func TestCleanupCLIUsesYAMLFiltersAndCLIOverrides(t *testing.T) {
+	repo := t.TempDir()
+	gitignore := filepath.Join(repo, ".gitignore")
+	if err := os.WriteFile(gitignore, []byte("node_modules/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if output, err := exec.Command("git", "-C", repo, "init", "--quiet").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v: %s", err, output)
+	}
+
+	now := time.Now()
+	excludedCache := filepath.Join(repo, "excluded", "node_modules")
+	tooNewCache := filepath.Join(repo, "too-new", "node_modules")
+	eligibleCache := filepath.Join(repo, "eligible", "node_modules")
+	for _, cache := range []string{excludedCache, tooNewCache, eligibleCache} {
+		if err := os.MkdirAll(cache, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(cache, "cache.dat"), []byte("cache"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := now.Add(-60 * 24 * time.Hour)
+	if err := os.Chtimes(filepath.Join(excludedCache, "cache.dat"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(filepath.Join(eligibleCache, "cache.dat"), old, old); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := Config{
+		Version: 1,
+		Options: Options{
+			DefaultScanPath: repo,
+			MaxDepth:        4,
+			ExcludePaths:    []string{filepath.Join(repo, "excluded")},
+			MinAge:          "90d",
+		},
+		Languages: []Language{{Name: "node", Enabled: true, Patterns: []string{"node_modules"}}},
+	}
+	configBytes, err := yaml.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(t.TempDir(), "dev-cache.yaml")
+	if err := os.WriteFile(configPath, configBytes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	binary := filepath.Join(t.TempDir(), "dev-cache")
+	build := exec.Command("go", "build", "-o", binary, ".")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build dev-cache: %v: %s", err, output)
+	}
+	command := exec.Command(binary, "--config", configPath, "--clean", "--yes", "--min-age", "30d")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("dev-cache cleanup: %v: %s", err, output)
+	}
+
+	for _, cache := range []string{excludedCache, tooNewCache} {
+		if _, err := os.Stat(cache); err != nil {
+			t.Errorf("protected cache %s should remain: %v", cache, err)
+		}
+	}
+	if _, err := os.Stat(eligibleCache); !os.IsNotExist(err) {
+		t.Errorf("eligible cache %s should be removed, stat error = %v", eligibleCache, err)
 	}
 }
 
